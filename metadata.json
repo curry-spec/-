@@ -1,0 +1,6 @@
+{
+  "name": "意图识别运营中心",
+  "description": "意图识别全链路监控与Badcase分析运营平台",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
