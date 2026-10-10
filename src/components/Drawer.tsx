@@ -9,12 +9,15 @@ import { motion, AnimatePresence } from 'motion/react';
 interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   eyebrow?: string;
+  size?: string;
+  noPadding?: boolean;
   children: React.ReactNode;
+  hideCloseButton?: boolean;
 }
 
-export default function Drawer({ isOpen, onClose, title, eyebrow, children }: DrawerProps) {
+export default function Drawer({ isOpen, onClose, title, eyebrow, size, noPadding, children, hideCloseButton }: DrawerProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -31,7 +34,7 @@ export default function Drawer({ isOpen, onClose, title, eyebrow, children }: Dr
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="drawer"
+            className={`drawer ${size === 'lg' ? 'max-w-[1000px]' : size === 'md' ? 'max-w-[760px]' : 'max-w-[500px]'} w-full`}
             role="dialog"
             aria-modal="true"
           >
@@ -40,11 +43,13 @@ export default function Drawer({ isOpen, onClose, title, eyebrow, children }: Dr
                 {eyebrow && <small className="text-gray-400 block mb-1">{eyebrow}</small>}
                 <h2 className="text-lg font-bold">{title}</h2>
               </div>
-              <button className="icon-button" onClick={onClose} aria-label="关闭详情">
-                <X size={20} />
-              </button>
+              {!hideCloseButton && (
+                <button className="icon-button" onClick={onClose} aria-label="关闭详情">
+                  <X size={20} />
+                </button>
+              )}
             </header>
-            <div className="drawer-body">
+            <div className={`drawer-body ${noPadding ? 'p-0' : ''}`}>
               {children}
             </div>
           </motion.section>

@@ -65,6 +65,15 @@ export default function Sidebar({ currentView, onViewChange, isOpen, onClose }: 
         </nav>
 
         <div className="nav-label">配置</div>
+        <nav>
+          <button
+            className={`nav-item ${currentView === 'config-metrics' ? 'active' : ''}`}
+            onClick={() => { onViewChange('config-metrics'); onClose(); }}
+          >
+            <UserRound size={16} />
+            核心指标配置
+          </button>
+        </nav>
         
         <div className="sidebar-bottom">
           <span className="avatar">运</span>

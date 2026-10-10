@@ -17,7 +17,8 @@ const viewLabels: Record<View, string> = {
   badcase: 'Badcase 分析',
   batches: '评估批次',
   assets: '链路调优资产',
-  validation: '验证追踪'
+  validation: '验证追踪',
+  'config-metrics': '核心指标配置'
 };
 
 export default function Topbar({ currentView, onMenuClick }: TopbarProps) {

@@ -12,6 +12,7 @@ import Badcase from './views/Badcase';
 import Batches from './views/Batches';
 import Assets from './views/Assets';
 import Validation from './views/Validation';
+import ConfigMetrics from './views/ConfigMetrics';
 import { View, Channel } from './types';
 
 export default function App() {
@@ -19,10 +20,18 @@ export default function App() {
   const [channel, setChannel] = useState<Channel>('all');
   const [date, setDate] = useState('2026-09-08');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedMetricId, setSelectedMetricId] = useState<string>('block');
+
+  // Shared time range filter states
+  const [timeRange, setTimeRange] = useState<string>('近7天');
+  const [startDate, setStartDate] = useState<string>('2026-09-02');
+  const [endDate, setEndDate] = useState<string>('2026-09-08');
 
   const navigateToAnalysis = useCallback((metricId?: string) => {
     setCurrentView('analysis');
-    // If we had a global state for selected metric, we'd update it here
+    if (metricId) {
+      setSelectedMetricId(metricId);
+    }
   }, []);
 
   const renderView = () => {
@@ -34,6 +43,13 @@ export default function App() {
             date={date}
             onChannelChange={setChannel}
             onDateChange={setDate}
+            onNavigateToAnalysis={navigateToAnalysis}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            startDate={startDate}
+            onStartDateChange={setStartDate}
+            endDate={endDate}
+            onEndDateChange={setEndDate}
           />
         );
       case 'analysis':
@@ -41,6 +57,15 @@ export default function App() {
           <Analysis
             channel={channel}
             date={date}
+            selectedMetricId={selectedMetricId}
+            onMetricSelect={setSelectedMetricId}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            startDate={startDate}
+            onStartDateChange={setStartDate}
+            endDate={endDate}
+            onEndDateChange={setEndDate}
+            onNavigateToBadcase={() => setCurrentView('badcase')}
           />
         );
       case 'badcase':
@@ -69,6 +94,8 @@ export default function App() {
             channel={channel}
           />
         );
+      case 'config-metrics':
+        return <ConfigMetrics />;
       default:
         return null;
     }

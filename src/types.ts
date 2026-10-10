@@ -4,7 +4,7 @@
  */
 
 export type Channel = 'all' | 'phone' | 'online';
-export type View = 'overview' | 'analysis' | 'badcase' | 'batches' | 'assets' | 'validation';
+export type View = 'overview' | 'analysis' | 'badcase' | 'batches' | 'assets' | 'validation' | 'config-metrics';
 
 export interface Metric {
   id: string;
@@ -21,6 +21,7 @@ export interface Metric {
   trend?: number[];
   provided?: boolean;
   stage?: string;
+  stageName?: string;
   hint?: string;
 }
 

@@ -445,7 +445,7 @@ table {
 }
 
 th {
-  background: #e6f7ff;
+  background: #D6E2FF;
   color: #000;
   font-size: 13px;
   font-weight: 500;
@@ -945,7 +945,7 @@ th, td {
 }
 
 .breakdown-table th {
-  background: #f8f9fb;
+  background: #D6E2FF;
   font-size: 10px;
   color: var(--muted);
 }

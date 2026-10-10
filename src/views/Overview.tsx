@@ -81,9 +81,28 @@ interface OverviewProps {
   date: string;
   onChannelChange: (c: Channel) => void;
   onDateChange: (d: string) => void;
+  onNavigateToAnalysis: (metricId?: string) => void;
+  timeRange: string;
+  onTimeRangeChange: (t: string) => void;
+  startDate: string;
+  onStartDateChange: (d: string) => void;
+  endDate: string;
+  onEndDateChange: (d: string) => void;
 }
 
-export default function Overview({ channel, date, onChannelChange, onDateChange }: OverviewProps) {
+export default function Overview({ 
+  channel, 
+  date, 
+  onChannelChange, 
+  onDateChange, 
+  onNavigateToAnalysis,
+  timeRange,
+  onTimeRangeChange,
+  startDate,
+  onStartDateChange,
+  endDate,
+  onEndDateChange
+}: OverviewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerContent, setDrawerContent] = useState<{ title: string; eyebrow: string; content: React.ReactNode } | null>(null);
   const [chartMode, setChartMode] = useState<'quality' | 'latency'>('quality');
@@ -104,9 +123,9 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
   ]);
   const [activeLatencyLegends, setActiveLatencyLegends] = useState<string[]>(['全过程平均耗时']);
 
-  const [timeRange, setTimeRange] = useState('近7天');
-  const [startDate, setStartDate] = useState('2026-08-10');
-  const [endDate, setEndDate] = useState('2026-09-08');
+  const setTimeRange = onTimeRangeChange;
+  const setStartDate = onStartDateChange;
+  const setEndDate = onEndDateChange;
 
   const durationDays = useMemo(() => {
     if (timeRange === '昨日') return 1;
@@ -260,9 +279,19 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
     return displayMetrics.filter(m => {
       if (m.target === undefined) return false;
       const val = m.id === 'latency' ? data.latency : (data[m.n as keyof BatchData] as number / (data[m.d as keyof BatchData] as number)) * 100;
-      return typeof m.target === 'number' ? (m.dir === 'lt' ? val > m.target : val < m.target) : false;
+      if (typeof m.target !== 'number') return false;
+      const target = m.target as number;
+      if (m.dir === 'lt') {
+        return m.inclusive ? val > target : val >= target;
+      } else {
+        return m.inclusive ? val < target : val <= target;
+      }
     });
   }, [data, displayMetrics]);
+
+  const filteredFails = useMemo(() => {
+    return fails.filter(m => !['e2e', 'manual', 'judge', 'latency'].includes(m.id));
+  }, [fails]);
 
   const colors = [
     '#cf1322', '#1890ff', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16', '#faad14', '#52c41a', '#a0d911'
@@ -400,7 +429,7 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
     const num2 = m.d ? (data[m.d as keyof BatchData] as number) : undefined;
 
     const dateStr = filteredDailyTrends[filteredDailyTrends.length - 1]?.date ? `2026-${filteredDailyTrends[filteredDailyTrends.length - 1].date}` : '2026-09-08';
-    const eyebrowStr = `${m.code || 'CODE'} · ${dateStr} · ${channel === 'all' ? '全部渠道' : channelNames[channel]}`;
+    const eyebrowStr = `${dateStr} · ${channel === 'all' ? '全部渠道' : channelNames[channel]}`;
 
     const isKPI = m.id === 'e2e' || m.id === 'manual' || m.id === 'judge' || m.id === 'latency' || m.name === '全过程准确率' || m.name === '全过程人工标注准确率' || m.name === '评估模型准确率' || m.name === '全过程平均耗时';
 
@@ -456,7 +485,9 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
 
           {/* 统计口径 Section */}
           <div className="mb-8 pb-6 border-b border-gray-100">
-            <h3 className="text-[15px] font-bold text-gray-900 mb-3">统计口径</h3>
+            <h3 className="text-[15px] font-bold text-gray-900 mb-3">
+              {m.id === 'block' ? '指标口径' : '统计口径'}
+            </h3>
             <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
               {m.definition || '格式合法、文本质量通过且模型与 Judge 操作集合一致的样本比例。'}
             </p>
@@ -537,12 +568,122 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
             </div>
           )}
 
-          {/* Action Button */}
-          <div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded flex items-center gap-2 text-sm shadow-sm transition-all">
-              <BarChart3 size={15} />
-              <span>进入异常指标分析</span>
-            </button>
+          {/* Action Button - only shown for non-KPI metrics */}
+          {!isKPI && (
+            <div>
+              <button 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-5 rounded flex items-center gap-2 text-sm shadow-sm transition-all cursor-pointer"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  onNavigateToAnalysis(m.id);
+                }}
+              >
+                <BarChart3 size={15} />
+                <span>进入异常指标分析</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )
+    });
+    setDrawerOpen(true);
+  };
+
+  const handleDateCardClick = (d: any) => {
+    const formattedFullDate = `2026-${d.date}`;
+    const eyebrowStr = `${formattedFullDate} · ${channel === 'all' ? '全部渠道' : channelNames[channel]}`;
+    
+    // Select correct rows based on current active chartMode
+    const rows = chartMode === 'quality' ? [
+      { name: '误拦截率', code: 'TG-FBR', target: '≤ 0.5%', checkPass: (val: number) => val <= 0.5, id: 'block' },
+      { name: '漏拦截率', code: 'TG-MBR', target: '目标待确认', id: 'missed' },
+      { name: '模型与 Judge 操作集合一致率', code: 'QR-OP-SET-MATCH', target: '≥ 90%', checkPass: (val: number) => val >= 90.0, id: 'operations' },
+      { name: '模型-Judge 端到端代理准确率', code: 'QR-E2E-PROXY-ACC', target: '≥ 85%', checkPass: (val: number) => val >= 85.0, id: 'query' },
+      { name: 'RRF 前K命中率', code: 'HJ_RRF_HIT_AT_K', target: '≥ 95%', checkPass: (val: number) => val >= 95.0, id: 'recall' },
+      { name: 'Reranker Top1 准确率', code: 'HJ_RERANK_TOP1_ACC', target: '≥ 93%', checkPass: (val: number) => val >= 93.0, id: 'hit' },
+      { name: 'Reranker 直出意图准确率', code: 'HJ_DIRECT_RETURN_ACC', target: '≥ 93%', checkPass: (val: number) => val >= 93.0, id: 'direct' },
+      { name: '意图识别准确率', code: '编码待提供', target: '目标待确认', id: 'llm' },
+      { name: '拒识命中率', code: '编码待提供', target: '目标待确认', id: 'reject' },
+    ] : [
+      { name: '全过程平均耗时', code: 'E2E-RT-AVG', target: '≤ 1000ms', checkPass: (val: number) => val <= 1000, id: 'latency' }
+    ];
+
+    setDrawerContent({
+      title: '当日指标对照',
+      eyebrow: eyebrowStr,
+      content: (
+        <div className="drawer-inner pb-8 animate-fadeIn">
+          <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm bg-white mt-2">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="py-3 px-6 text-left text-[13px] font-semibold text-gray-700 bg-[#D6E2FF] border-r border-white">指标</th>
+                  <th className="py-3 px-4 text-center text-[13px] font-semibold text-gray-700 bg-[#D6E2FF] border-r border-white">当日值</th>
+                  <th className="py-3 px-4 text-center text-[13px] font-semibold text-gray-700 bg-[#D6E2FF] border-r border-white">目标</th>
+                  <th className="py-3 px-4 text-center text-[13px] font-semibold text-gray-700 bg-[#D6E2FF] last:border-r-0 w-[80px]">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => {
+                  const rawVal = d[row.name];
+                  const hasVal = rawVal !== undefined && rawVal !== null;
+                  
+                  // Determine status if target is provided
+                  const isTargetProvided = row.target !== '目标待确认';
+                  const isPass = isTargetProvided && row.checkPass && row.checkPass(rawVal);
+                  
+                  // Format value
+                  const unit = row.id === 'latency' ? 'ms' : '%';
+                  const valStr = hasVal ? `${rawVal}${unit}` : '--';
+
+                  const isKPI = row.id === 'latency' || row.id === 'e2e' || row.id === 'manual' || row.id === 'judge';
+
+                  return (
+                    <tr key={idx} className="border-b border-[#f2f4f8] last:border-b-0 hover:bg-[#f6f9fe]/70 transition-all">
+                      <td className="py-3.5 px-6 text-left">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-bold text-gray-800 leading-normal">{row.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="inline-flex items-center justify-center">
+                          {/* Force values to always be black text per prompt: "当日值的数据就用黑色字体" */}
+                          <span className="text-[13.5px] font-extrabold font-mono text-black">{valStr}</span>
+                          {hasVal && isTargetProvided && (
+                            <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                              isPass ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                            }`}>
+                              {isPass ? '达标' : '未达标'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center text-[13px] text-gray-500 font-normal">
+                        {row.target}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        {!isKPI ? (
+                          <button 
+                            className="text-[13px] font-medium text-blue-600 hover:text-blue-700 hover:underline bg-transparent border-0 cursor-pointer"
+                            onClick={() => {
+                              setDrawerOpen(false);
+                              onTimeRangeChange('自定义');
+                              onStartDateChange(`2026-${d.date}`);
+                              onEndDateChange(`2026-${d.date}`);
+                              onNavigateToAnalysis(row.id);
+                            }}
+                          >
+                            分析
+                          </button>
+                        ) : (
+                          <span className="text-[13px] text-gray-300">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )
@@ -575,7 +716,19 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                   <button 
                     key={p} 
                     className={`time-option ${timeRange === p ? 'active' : ''}`}
-                    onClick={() => setTimeRange(p)}
+                    onClick={() => {
+                      setTimeRange(p);
+                      if (p === '昨日') {
+                        setStartDate('2026-09-08');
+                        setEndDate('2026-09-08');
+                      } else if (p === '近7天') {
+                        setStartDate('2026-09-02');
+                        setEndDate('2026-09-08');
+                      } else if (p === '近30天') {
+                        setStartDate('2026-08-10');
+                        setEndDate('2026-09-08');
+                      }
+                    }}
                   >
                     {p}
                   </button>
@@ -811,9 +964,6 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                               <div className="text-[13px] font-bold text-gray-800 truncate group-hover:text-blue-600 transition-colors" title={m.name}>
                                 {m.name}
                               </div>
-                              <div className="text-[10.5px] font-mono text-gray-400 mt-0.5 uppercase tracking-wider">
-                                {m.code || 'CODE'}
-                              </div>
                               <div className="text-[10.5px] text-gray-400 mt-1 flex items-center gap-1.5 font-normal">
                                 <span>异常 {abnormalDays}/{totalDays} 天</span>
                                 <span className="text-gray-300">·</span>
@@ -1035,7 +1185,7 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                           ticks={[10.3, 40.2, 70.1, 100.0]}
                           tickFormatter={(tick) => `${tick.toFixed(1)}%`}
                         />
-                        <Tooltip content={<CustomTooltip />} shared={false} trigger="item" />
+                        <Tooltip content={<CustomTooltip />} shared={false} />
                         
                         {activeQualityLegends.includes('模型与 Judge 操作集合一致率') && (
                           <Line type="monotone" dataKey="模型与 Judge 操作集合一致率" stroke="#722ed1" strokeWidth={2} dot={{ r: 3, fill: '#722ed1' }} activeDot={{ r: 5 }} />
@@ -1094,7 +1244,7 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                           ticks={[3.8, 4.6, 5.4, 6.1]}
                           tickFormatter={(tick) => `${tick.toFixed(1)}%`}
                         />
-                        <Tooltip content={<CustomTooltip />} shared={false} trigger="item" />
+                        <Tooltip content={<CustomTooltip />} shared={false} />
                         
                         {activeQualityLegends.includes('误拦截率') && (
                           <Line type="monotone" dataKey="误拦截率" stroke="#cf1322" strokeWidth={2.5} dot={{ r: 4, fill: '#cf1322' }} activeDot={{ r: 6 }} />
@@ -1133,7 +1283,7 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                         ticks={[690, 706, 723, 739]}
                         tickFormatter={(tick) => `${tick}ms`}
                       />
-                      <Tooltip content={<CustomTooltip />} shared={false} trigger="item" />
+                      <Tooltip content={<CustomTooltip />} shared={false} />
                       
                       {activeLatencyLegends.includes('全过程平均耗时') && (
                         <Line type="monotone" dataKey="全过程平均耗时" stroke="#8b5a2b" strokeWidth={2.5} dot={{ r: 4, fill: '#8b5a2b' }} activeDot={{ r: 6 }} />
@@ -1172,7 +1322,7 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                       return (
                         <div 
                           key={d.date} 
-                          className="flex-shrink-0 w-[110px] bg-[#fafafa] border border-gray-150 rounded-xl p-3.5 text-center transition-all cursor-not-allowed"
+                          className="flex-shrink-0 w-[110px] bg-[#D6E2FF] border border-gray-150 rounded-xl p-3.5 text-center transition-all cursor-not-allowed"
                         >
                           <div className="text-[14px] text-slate-400 font-normal mb-1.5">{d.date}</div>
                           <div className="text-[14px] text-slate-400 font-normal">无数据</div>
@@ -1184,7 +1334,7 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                         key={d.date} 
                         className={`flex-shrink-0 w-[110px] bg-white border ${isToday ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200'} rounded-lg p-2.5 text-center transition-all cursor-pointer hover:border-blue-400 hover:shadow-sm`}
                         onClick={() => {
-                          alert(`跳转 to 2026-${d.date} 数据批次分析中...`);
+                          handleDateCardClick(d);
                         }}
                       >
                         <div className="text-[12px] font-medium text-gray-600 mb-1">{d.date}</div>
@@ -1297,13 +1447,13 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
           <div className="flex items-center gap-2 mb-6">
             <div className="w-1.5 h-6 bg-red-500 rounded-full"></div>
             <h2 className="font-bold text-base">待分析异常记录</h2>
-            <small className="text-red-500 ml-2">1 项待办</small>
+            <small className="text-red-500 ml-2">{filteredFails.length} 项待办</small>
           </div>
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>异常指标 / 编码</th>
+                  <th>异常指标</th>
                   <th>期间值 / 目标</th>
                   <th>异常日期 · 点击分析当天</th>
                   <th>异常日期累计样本数</th>
@@ -1311,11 +1461,11 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                 </tr>
               </thead>
               <tbody>
-                {fails.length === 0 ? (
+                {filteredFails.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-10 text-center text-gray-400">暂无异常记录</td>
                   </tr>
-                ) : fails.map(m => {
+                ) : filteredFails.map(m => {
                   const val = m.id === 'latency' ? data.latency : (data[m.n as keyof BatchData] as number / (data[m.d as keyof BatchData] as number)) * 100;
                   const totalSamples = data[m.d as keyof BatchData] as number;
                   return (
@@ -1323,7 +1473,6 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                       <td>
                         <div className="flex flex-col">
                           <strong className="text-xs">{m.name}</strong>
-                          <span className="text-[10px] text-gray-400">{m.code}</span>
                         </div>
                       </td>
                       <td>
@@ -1336,7 +1485,19 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                       <td>
                         <div className="anomaly-date-pills">
                           {filteredDailyTrends.slice(0, 7).map(d => (
-                            <span key={d.date} className="anomaly-date-pill">{d.date}</span>
+                            <span 
+                              key={d.date} 
+                              className="anomaly-date-pill cursor-pointer hover:opacity-80 active:scale-95 transition-all select-none"
+                              onClick={() => {
+                                onTimeRangeChange('自定义');
+                                onStartDateChange(`2026-${d.date}`);
+                                onEndDateChange(`2026-${d.date}`);
+                                onNavigateToAnalysis(m.id);
+                              }}
+                              title="点击进入该指标异常分析"
+                            >
+                              {d.date}
+                            </span>
                           ))}
                         </div>
                         <span className="text-[10px] text-gray-400 mt-1 block">
@@ -1350,7 +1511,10 @@ export default function Overview({ channel, date, onChannelChange, onDateChange 
                         </div>
                       </td>
                       <td className="text-right">
-                        <button className="text-blue-600 text-xs flex items-center ml-auto">
+                        <button 
+                          className="text-blue-600 text-xs flex items-center ml-auto cursor-pointer"
+                          onClick={() => onNavigateToAnalysis(m.id)}
+                        >
                           分析期间 <ArrowUpRight size={12} />
                         </button>
                       </td>

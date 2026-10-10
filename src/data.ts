@@ -131,6 +131,7 @@ export const metrics: Metric[] = [
   {
     id: 'block',
     stage: 'filter',
+    stageName: '前置过滤',
     code: 'TG-FBR',
     name: '误拦截率',
     n: 'block',
@@ -145,6 +146,7 @@ export const metrics: Metric[] = [
   {
     id: 'missed',
     stage: 'filter',
+    stageName: '前置过滤',
     code: 'TG-MBR',
     name: '漏拦截率',
     n: 'missed',
@@ -159,6 +161,7 @@ export const metrics: Metric[] = [
   {
     id: 'operations',
     stage: 'rewrite',
+    stageName: 'Query 改写',
     code: 'QR-OP-SET-MATCH',
     name: '模型与 Judge 操作集合一致率',
     n: 'operations',
@@ -173,6 +176,7 @@ export const metrics: Metric[] = [
   {
     id: 'query',
     stage: 'rewrite',
+    stageName: 'Query 改写',
     code: 'QR-E2E-PROXY-ACC',
     name: '模型-Judge 端到端代理准确率',
     n: 'query',
@@ -187,6 +191,7 @@ export const metrics: Metric[] = [
   {
     id: 'recall',
     stage: 'retrieval',
+    stageName: '混合检索',
     code: 'HJ_RRF_HIT_AT_K',
     name: 'RRF 前K命中率',
     n: 'recall',
@@ -201,6 +206,7 @@ export const metrics: Metric[] = [
   {
     id: 'hit',
     stage: 'retrieval',
+    stageName: '混合检索',
     code: 'HJ_RERANK_TOP1_ACC',
     name: 'Reranker Top1 准确率',
     n: 'hit',
@@ -215,6 +221,7 @@ export const metrics: Metric[] = [
   {
     id: 'direct',
     stage: 'retrieval',
+    stageName: '混合检索',
     code: 'HJ_DIRECT_RETURN_ACC',
     name: 'Reranker 直出意图准确率',
     n: 'direct',
@@ -229,6 +236,7 @@ export const metrics: Metric[] = [
   {
     id: 'llm',
     stage: 'llm',
+    stageName: '意图路由',
     code: 'LLM-INTENT-ACC',
     name: '意图识别准确率',
     n: 'llm',
@@ -237,12 +245,13 @@ export const metrics: Metric[] = [
     dir: 'gt',
     inclusive: true,
     source: 'Excel · 核心指标',
-    definition: '最终意图路由输出中，模型判定意图与标准标注意图一致的比例。',
+    definition: '当前指标清单未提供独立的 LLM 识别准确率编码和目标，页面仅保留链路观察。',
     hint: '对照模型混淆矩阵，分析分类错配、语篇错配和未知标签样本。'
   },
   {
     id: 'reject',
     stage: 'llm',
+    stageName: '意图路由',
     code: 'LLM-REJECT-ACC',
     name: '拒识命中率',
     n: 'reject',
@@ -251,7 +260,7 @@ export const metrics: Metric[] = [
     dir: 'gt',
     inclusive: true,
     source: 'Excel · 核心指标',
-    definition: '应该拒识的超纲或无意义请求中，模型正确识别并执行拒识操作的比例。',
+    definition: '当前指标清单未提供独立的拒识命中率编码和目标，页面仅保留链路观察。',
     hint: '分析漏拒识（进入业务知识库导致幻觉）与误拒识（正常意图被阻断）样本。'
   }
 ];
