@@ -2586,8 +2586,8 @@ export default function Analysis({
                               setBlockErrorType([]);
                               setRoundTypeCorrectness(null);
                             } else if (isHybridMetric) {
-                              setRecallRrfHit(null);
-                              setRecallRerankerHit(null);
+                              setRrfTopKHit(null);
+                              setRerankerTop1Consistency(null);
                             } else if (isIntentRoutingMetric) {
                               setEvalModelPassed(null);
                               setIntentErrorType(null);

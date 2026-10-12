@@ -16,6 +16,7 @@ import {
   AlertCircle,
   ArrowLeft
 } from 'lucide-react';
+import ConversationDetailView from '../components/ConversationDetailView';
 import { Channel } from '../types';
 
 interface BatchesProps {
@@ -286,6 +287,7 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
 
   // Detail View State
   const [selectedBatch, setSelectedBatch] = useState<BatchItem | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
 
   // Active dataset
   const activeBatches = tab === 'daily' ? INITIAL_BATCHES : MANUAL_BATCHES;
@@ -328,264 +330,77 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
   // If a batch is selected, render the full-page detail view matching user's image.png
   if (selectedBatch) {
     const isOnline = selectedBatch.channel === 'online';
-    const parsingStepName = isOnline ? '聊天记录解析' : '录音转写解析';
-    const abnormalCount = selectedBatch.code === 'AUTO-20260908-O' ? 180 : Math.round(selectedBatch.requests * 0.0225);
-    const badcaseCount = selectedBatch.code === 'AUTO-20260908-O' ? 12 : Math.round(selectedBatch.sessions * 0.00375) || 12;
-
-    const progressSteps = [
-      {
-        step: '数据接入',
-        status: '已完成',
-        startTime: `${selectedBatch.date.substring(5)} 01:00`,
-        endTime: `${selectedBatch.date.substring(5)} 01:00`,
-        successCount: selectedBatch.sessions.toLocaleString(),
-        failCount: '0',
-        failReason: '—'
-      },
-      {
-        step: '会话完整性校验',
-        status: '已完成',
-        startTime: '01:00',
-        endTime: '01:15',
-        successCount: selectedBatch.sessions.toLocaleString(),
-        failCount: '0',
-        failReason: '—'
-      },
-      {
-        step: parsingStepName,
-        status: '已完成',
-        startTime: '01:15',
-        endTime: '03:10',
-        successCount: selectedBatch.requests.toLocaleString(),
-        failCount: '0',
-        failReason: '—'
-      },
-      {
-        step: 'AI 全量质检',
-        status: '已完成',
-        startTime: '03:10',
-        endTime: '07:45',
-        successCount: selectedBatch.requests.toLocaleString(),
-        failCount: '0',
-        failReason: '—'
-      },
-      {
-        step: '指标计算',
-        status: '已完成',
-        startTime: '07:45',
-        endTime: '08:00',
-        successCount: selectedBatch.requests.toLocaleString(),
-        failCount: '0',
-        failReason: '—'
-      },
-      {
-        step: '异常样本生成',
-        status: '已完成',
-        startTime: '08:00',
-        endTime: '08:03',
-        successCount: abnormalCount.toLocaleString(),
-        failCount: '0',
-        failReason: '—'
-      },
-      {
-        step: '结果写入监控中心',
-        status: '已完成',
-        startTime: '08:03',
-        endTime: selectedBatch.completedTime,
-        successCount: selectedBatch.requests.toLocaleString(),
-        failCount: '0',
-        failReason: '—'
-      }
+    const MOCK_CONVERSATIONS = [
+      { id: 'R1_5002_6a228c38_5002', startTime: '2026-09-07 16:43:55', endTime: '2026-09-07 16:47:59' },
+      { id: 'R1_5002_6a227ffa_5002', startTime: '2026-09-07 15:51:52', endTime: '2026-09-07 15:53:00' },
+      { id: 'R1_5001_6a226d8e_5001', startTime: '2026-09-07 14:33:18', endTime: '2026-09-07 14:37:02' },
+      { id: 'R1_5002_6a226806_5002', startTime: '2026-09-07 14:09:43', endTime: '2026-09-07 14:16:15' },
+      { id: 'R1_5001_6a223ab2_5001', startTime: '2026-09-07 10:56:05', endTime: '2026-09-07 10:56:21' },
+      { id: 'R1_5001_6a223084_5001', startTime: '2026-09-07 10:12:44', endTime: '2026-09-07 10:12:59' },
+      { id: 'R1_5002_6a22302c_5002', startTime: '2026-09-07 10:11:11', endTime: '2026-09-07 10:11:33' },
+      { id: 'R1_5002_6a2143cc_5002', startTime: '2026-09-06 17:22:53', endTime: '2026-09-06 17:24:06' },
+      { id: 'R1_5001_6a212eae_5001', startTime: '2026-09-06 15:52:45', endTime: '2026-09-06 15:57:00' },
+      { id: 'R1_5002_6a212641_5002', startTime: '2026-09-06 15:17:09', endTime: '' },
     ];
 
     return (
       <div className="page pb-20 animate-in fade-in duration-200">
-        {/* Page Title */}
-        <h1 className="text-[20px] font-bold text-gray-900 mb-6">批次详情</h1>
-
-        {/* Batch Header Bar */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-2xs p-5 mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        {selectedConversation ? (
+          <ConversationDetailView conversationId={selectedConversation} onBack={() => setSelectedConversation(null)} />
+        ) : (
+          <>
+            {/* Back Button */}
             <button 
               onClick={() => setSelectedBatch(null)}
-              className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer p-1.5 -ml-1 rounded hover:bg-gray-100 flex items-center justify-center"
-              title="返回批次列表"
+              className="text-gray-600 hover:text-blue-600 transition-colors cursor-pointer flex items-center gap-1 mb-6"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} /> 返回批次列表
             </button>
-            <div>
-              <h2 className="text-[18px] font-bold text-gray-900 font-mono leading-tight">
-                {selectedBatch.code}
-              </h2>
-              <div className="text-[12px] text-gray-400 mt-1">
-                {selectedBatch.subType} · {selectedBatch.source} · {selectedBatch.channelName}
-              </div>
-            </div>
-          </div>
-          <span className="px-2 py-0.5 text-[12px] rounded border bg-emerald-50 text-emerald-600 border-emerald-200 font-medium">
-            已完成
-          </span>
-        </div>
 
-        {/* Card 1: 批次基本信息 */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-2xs p-6 mb-6">
-          <h3 className="text-[15px] font-bold text-gray-900 mb-6">批次基本信息</h3>
-          <div className="grid grid-cols-2 gap-x-16 gap-y-6 text-[13px]">
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">批次编号</div>
-              <div className="text-gray-900 font-mono font-medium">{selectedBatch.code}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">评估类型</div>
-              <div className="text-gray-900 font-medium">{selectedBatch.subType}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">会话日期</div>
-              <div className="text-gray-900 font-mono font-medium">{selectedBatch.date}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">数据来源</div>
-              <div className="text-gray-900 font-medium">{selectedBatch.source}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">业务渠道</div>
-              <div className="text-gray-900 font-medium">{selectedBatch.channelName}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">创建时间</div>
-              <div className="text-gray-900 font-mono font-medium">{selectedBatch.date.substring(5)} 01:00</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">完成时间</div>
-              <div className="text-gray-900 font-mono font-medium">{selectedBatch.completedTime}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">评估模板</div>
-              <div className="text-gray-900 font-medium">指标体系 V1.0</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: 执行进度 */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-2xs p-6 mb-6">
-          <h3 className="text-[15px] font-bold text-gray-900 mb-5">执行进度</h3>
-          <div className="border border-gray-100 rounded-lg overflow-hidden">
-            <table className="w-full text-left border-collapse text-[13px]">
-              <thead>
-                <tr className="bg-[#D6E2FF] text-gray-500 font-medium border-b border-gray-200">
-                  <th className="py-3 px-5 font-normal text-gray-400 w-[20%]">链路环节</th>
-                  <th className="py-3 px-5 font-normal text-gray-400 w-[12%]">状态</th>
-                  <th className="py-3 px-5 font-normal text-gray-400 w-[14%]">开始时间</th>
-                  <th className="py-3 px-5 font-normal text-gray-400 w-[14%]">完成时间</th>
-                  <th className="py-3 px-5 font-normal text-gray-400 w-[14%]">成功数</th>
-                  <th className="py-3 px-5 font-normal text-gray-400 w-[12%]">失败数</th>
-                  <th className="py-3 px-5 font-normal text-gray-400 w-[14%]">失败原因</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-800">
-                {progressSteps.map((step, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/10 transition-colors">
-                    <td className="py-3.5 px-5 font-medium text-gray-800">{step.step}</td>
-                    <td className="py-3.5 px-5">
-                      <span className="px-2 py-0.5 text-[12px] rounded-sm border bg-emerald-50 text-emerald-600 border-emerald-100 font-medium">
-                        {step.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 font-mono text-gray-600">{step.startTime}</td>
-                    <td className="py-3.5 px-5 font-mono text-gray-600">{step.endTime}</td>
-                    <td className="py-3.5 px-5 font-mono text-gray-800 font-medium">{step.successCount}</td>
-                    <td className="py-3.5 px-5 font-mono text-gray-800">{step.failCount}</td>
-                    <td className="py-3.5 px-5 text-gray-400">{step.failReason}</td>
+            {/* Table */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-2xs overflow-hidden">
+              <table className="w-full text-left border-collapse text-[13px]">
+                <thead>
+                  <tr className="bg-[#f0f4ff] text-gray-500 font-medium border-b border-gray-100">
+                    <th className="py-4 px-6">会话ID</th>
+                    <th className="py-4 px-6">开始时间</th>
+                    <th className="py-4 px-6">结束时间</th>
+                    <th className="py-4 px-6">操作</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {MOCK_CONVERSATIONS.map((conv, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50/10 transition-colors">
+                      <td className="py-4 px-6 text-gray-900 font-mono">{conv.id}</td>
+                      <td className="py-4 px-6 text-gray-600">{conv.startTime}</td>
+                      <td className="py-4 px-6 text-gray-600">{conv.endTime}</td>
+                      <td className="py-4 px-6 text-blue-600 hover:text-blue-800 cursor-pointer" onClick={() => setSelectedConversation(conv.id)}>详情</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-        {/* Card 3: 数据统计 */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-2xs p-6 mb-6">
-          <h3 className="text-[15px] font-bold text-gray-900 mb-6">数据统计</h3>
-          <div className="grid grid-cols-2 gap-x-16 gap-y-6 text-[13px]">
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">原始会话数</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">
-                {selectedBatch.sessions.toLocaleString()}
+              {/* Pagination Footer - Applied style */}
+              <div className="bg-white py-4 px-6 flex justify-end items-center text-[13px] text-gray-600 border-t border-gray-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">共 {MOCK_CONVERSATIONS.length} 条</span>
+                  <select className="border border-gray-300 rounded px-2 py-1 outline-none text-[13px]">
+                    <option>50条/页</option>
+                  </select>
+                  <button className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded text-gray-400">{'<'}</button>
+                  <button className="w-7 h-7 flex items-center justify-center bg-blue-600 text-white rounded">1</button>
+                  {[2, 3, 4, 5, 6].map(p => (
+                    <button key={p} className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded text-gray-700">{p}</button>
+                  ))}
+                  <button className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded text-gray-400">{'>'}</button>
+                  <span className="text-gray-600 ml-2">前往</span>
+                  <input type="text" defaultValue="1" className="w-12 border border-gray-300 rounded text-center py-1" />
+                  <span>页</span>
+                </div>
               </div>
             </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">有效会话数</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">
-                {selectedBatch.sessions.toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">请求数</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">
-                {selectedBatch.requests.toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">可评估请求数</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">
-                {selectedBatch.requests.toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">AI 评估成功数</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">
-                {selectedBatch.requests.toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">评估失败数</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">0</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">异常样本数</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">
-                {abnormalCount.toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">进入 Badcase 样本</div>
-              <div className="text-gray-900 font-mono font-medium text-[14px]">
-                {badcaseCount.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: 评估配置 */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-2xs p-6 mb-6">
-          <h3 className="text-[15px] font-bold text-gray-900 mb-6">评估配置</h3>
-          <div className="grid grid-cols-2 gap-x-16 gap-y-6 text-[13px]">
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">评估模型版本</div>
-              <div className="text-gray-900 font-medium">评估模型版本待接入</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">Judge 模型 / Prompt</div>
-              <div className="text-gray-900 font-medium">Judge Prompt 版本待接入</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">指标模板版本</div>
-              <div className="text-gray-900 font-medium">指标体系 V1.0</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">评估规则版本</div>
-              <div className="text-gray-900 font-medium">日常自动评估规则 V1.0</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">随机抽检完成 / 计划</div>
-              <div className="text-gray-900 font-mono font-medium">90 / 150</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-[12px] mb-1">定向抽检完成 / 计划</div>
-              <div className="text-gray-900 font-mono font-medium">30 / 80</div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     );
   }
@@ -594,7 +409,7 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
   return (
     <div className="page pb-20">
       {/* Top Tab Bar - Matching Badcase.tsx style */}
-      <div className="bg-white border-b border-gray-200 -mx-7 -mt-6 px-7 pt-3 flex items-center mb-6">
+      <div className="bg-white border-b border-gray-200 -mx-7 -mt-6 px-7 pt-3 flex items-center justify-between mb-6">
         <div className="flex items-center gap-8">
           <button
             className={`pb-2 text-[14px] font-medium transition-all relative cursor-pointer ${
@@ -762,7 +577,17 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
       </div>
 
       {/* Table Container - Matching Badcase.tsx style */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-2xs overflow-hidden mt-6">
+      <div className="mt-6 flex justify-end">
+        {tab === 'manual' && (
+          <button
+            className="px-4 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-[13px] font-medium rounded transition-all cursor-pointer shadow-sm"
+            onClick={() => alert('导入功能待接入')}
+          >
+            导入评估文件
+          </button>
+        )}
+      </div>
+      <div className="bg-white rounded-lg border border-gray-200 shadow-2xs overflow-hidden mt-2">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#D6E2FF] text-gray-500 text-[13px] font-medium border-b border-gray-200">
@@ -770,7 +595,7 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
               <th className="py-4 px-6 font-normal w-[12%] text-gray-400">评估日期</th>
               <th className="py-4 px-6 font-normal w-[15%] text-gray-400">数据来源</th>
               <th className="py-4 px-6 font-normal w-[12%] text-gray-400">渠道</th>
-              <th className="py-4 px-6 font-normal w-[15%] text-gray-400">会话 / 请求</th>
+              <th className="py-4 px-6 font-normal w-[15%] text-gray-400">会话数</th>
               <th className="py-4 px-6 font-normal w-[10%] text-gray-400">执行状态</th>
               <th className="py-4 px-6 font-normal w-[12%] text-gray-400">完成时间</th>
               <th className="py-4 px-6 font-normal w-[8%] text-right text-gray-400">操作</th>
@@ -795,11 +620,9 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
                   <td className="py-4 px-6 text-gray-700">
                     {item.channelName}
                   </td>
-                  {/* 会话 / 请求 */}
+                  {/* 会话数 */}
                   <td className="py-4 px-6 font-mono text-gray-700">
                     <span className="font-semibold text-gray-900">{item.sessions.toLocaleString()}</span>
-                    <span className="text-gray-400 mx-1">/</span>
-                    <span className="text-gray-500">{item.requests.toLocaleString()}</span>
                   </td>
                   {/* 执行状态 */}
                   <td className="py-4 px-6">
@@ -831,6 +654,7 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
             )}
           </tbody>
         </table>
+        {selectedConversation && <ConversationDetailView conversationId={selectedConversation} onBack={() => setSelectedConversation(null)} />}
 
         {/* Pagination Footer - Exact match with Badcase.tsx */}
         <div className="bg-[#f4f5f7] py-2 px-4 flex justify-end items-center text-[13px] text-gray-600 border-t border-gray-200">

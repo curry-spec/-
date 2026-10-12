@@ -981,6 +981,7 @@ interface LinkedDataset {
   linkedBy: string;
   fileContent?: string;
   fileSize?: string;
+  url?: string;
 }
 
 function getDatasetFileContent(ds: LinkedDataset): { lines: string[]; size: string; rawText: string } {
