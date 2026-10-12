@@ -23,7 +23,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
   const [searchTitle, setSearchTitle] = useState('');
   const [sourceMetric, setSourceMetric] = useState('全部来源指标');
   const [evalBatch, setEvalBatch] = useState('日常自动评估');
-  const [reviewProgress, setReviewProgress] = useState('全部复核进度');
 
   // Tab 2 (坐席反馈复核) filter states
   const [agentContentSearch, setAgentContentSearch] = useState('');
@@ -52,24 +51,19 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
   
   // Agent Feedback Form states
   const [agentProcessAction, setAgentProcessAction] = useState('请选择');
-  const [agentFinalReason, setAgentFinalReason] = useState('');
   const [agentFinalLink, setAgentFinalLink] = useState('请选择');
+  const [agentConfirmationBasis, setAgentConfirmationBasis] = useState('');
   const [agentExclusionReason, setAgentExclusionReason] = useState('');
   const [agentSubmitError, setAgentSubmitError] = useState('');
-  const [isJoinIssueDrawerOpen, setIsJoinIssueDrawerOpen] = useState(false);
   const [joinIssueMethod, setJoinIssueMethod] = useState('新建问题单');
   const [joinIssueTitle, setJoinIssueTitle] = useState('未关联指标异常');
   const [selectedExistingIssueId, setSelectedExistingIssueId] = useState('');
   const [joinIssueOwner, setJoinIssueOwner] = useState('AI运营人员');
   const [joinIssuePriority, setJoinIssuePriority] = useState('P2 · 常规');
 
-  const [isJudgeAccepted, setIsJudgeAccepted] = useState<string>(''); 
-  const [judgeRejectionReason, setJudgeRejectionReason] = useState('');
   const [isIncluded, setIsIncluded] = useState<string>(''); 
-  const [finalLink, setFinalLink] = useState('TurnGate评估');
-  const [finalReason, setFinalReason] = useState('');
+  const [finalLink, setFinalLink] = useState('前置过滤');
   const [confirmationBasis, setConfirmationBasis] = useState('');
-  const [adjustmentSuggestion, setAdjustmentSuggestion] = useState('');
   const [exclusionReason, setExclusionReason] = useState('');
   const [submitError, setSubmitError] = useState('');
 
@@ -77,7 +71,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
     setSearchTitle('');
     setSourceMetric('全部来源指标');
     setEvalBatch('日常自动评估');
-    setReviewProgress('全部复核进度');
     setCurrentPage(1);
   };
 
@@ -96,25 +89,77 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
       setAgentSubmitError('请选择处理操作！');
       return;
     }
-    if (!agentFinalReason.trim()) {
-      setAgentSubmitError('请填写人工最终原因 / 分析依据！');
-      return;
-    }
-    if (agentProcessAction === '纳入问题清单' && agentFinalLink === '请选择') {
-      setAgentSubmitError('请选择最终所属环节！');
-      return;
-    }
-    if (agentProcessAction === '不纳入' && !agentExclusionReason.trim()) {
-      setAgentSubmitError('请填写不纳入理由！');
-      return;
+    
+    if (agentProcessAction === '纳入问题清单') {
+      if (agentFinalLink === '请选择') {
+        setAgentSubmitError('请选择最终所属环节！');
+        return;
+      }
+      if (!agentConfirmationBasis.trim()) {
+        setAgentSubmitError('请填写确认依据！');
+        return;
+      }
+      if (joinIssueMethod === '新建问题单' && !joinIssueTitle.trim()) {
+        setAgentSubmitError('请填写问题标题！');
+        return;
+      }
+    } else if (agentProcessAction === '不纳入') {
+      if (!agentExclusionReason.trim()) {
+        setAgentSubmitError('请填写不纳入理由！');
+        return;
+      }
     }
 
     // Success - update local state
     setAgentSubmitError('');
     
     if (agentProcessAction === '纳入问题清单') {
+      let createdIssueId = '';
+      let createdIssueTitle = '';
+      
+      if (joinIssueMethod === '新建问题单') {
+        const title = joinIssueTitle.trim() || `${selectedAgentFeedback?.intent || '意图'}识别异常`;
+        const created = addIssue({
+          title: title,
+          batch: '日常自动评估',
+          metricName: selectedAgentFeedback?.intent || '意图点踩',
+          metricCode: selectedAgentFeedback?.code || 'AGENT-FEEDBACK',
+          value: '异常',
+          target: '-',
+          sampleTotal: 1,
+          samplePending: 1,
+          sampleExportable: 0,
+          owner: joinIssueOwner,
+        });
+        createdIssueId = created?.id || `BC-${Date.now().toString(36)}`;
+        createdIssueTitle = title;
+      } else {
+        const targetIssueId = selectedExistingIssueId || (systemIssues[0]?.id || 'BC-mutdc6sk');
+        createdIssueId = targetIssueId;
+        const found = systemIssues.find(i => i.id === targetIssueId);
+        createdIssueTitle = found ? found.title : '关联已有问题单';
+        if (targetIssueId) {
+          updateIssueSamples(targetIssueId, 1);
+        }
+      }
+
+      const updated = agentFeedbacks.map(f => {
+        if (f.id === selectedAgentFeedback.id) {
+          return { 
+            ...f, 
+            progress: '已纳入' as const,
+            action: '纳入问题清单',
+            finalLink: agentFinalLink,
+            joinIssueMethod: joinIssueMethod,
+            joinIssueTitle: joinIssueTitle,
+            associatedIssueId: createdIssueId,
+            associatedIssueTitle: createdIssueTitle
+          };
+        }
+        return f;
+      });
+      setAgentFeedbacks(updated);
       setAgentFeedbackDrawerOpen(false);
-      setIsJoinIssueDrawerOpen(true);
       return;
     }
 
@@ -138,7 +183,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
     const target = systemIssues.find(i => i.id === targetIssueId) || systemIssues[0];
     if (target) {
       setAgentFeedbackDrawerOpen(false);
-      setIsJoinIssueDrawerOpen(false);
       setSource('system');
       setSelectedIssueId(target.id);
       setCurrentPage(1);
@@ -154,7 +198,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
   interface SampleHistory {
     time: string;
     action: string;
-    isJudgeAccepted: string;
     isIncluded: string;
     finalLink: string;
     linkReason?: string;
@@ -169,13 +212,9 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
     link: string;
     linkReason: string;
     history?: SampleHistory[];
-    isJudgeAccepted?: string;
-    judgeRejectionReason?: string;
     isIncluded?: string;
     finalLink?: string;
-    finalReason?: string;
     confirmationBasis?: string;
-    adjustmentSuggestion?: string;
     exclusionReason?: string;
   }
 
@@ -186,21 +225,17 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
       judgeResult: 'system_error', 
       judgeReason: '上下文业务诉求被拦截', 
       status: '已纳入', 
-      link: 'TurnGate评估', 
+      link: '前置过滤', 
       linkReason: '2423', 
-      isJudgeAccepted: 'yes',
       isIncluded: 'yes',
-      finalLink: 'TurnGate评估',
-      finalReason: '2423',
-      confirmationBasis: '在TurnGate策略日志分析中确认，由于前置过滤决策码匹配错误导致上下文拦截。',
-      adjustmentSuggestion: '调整匹配词库范围。',
+      finalLink: '前置过滤',
+      confirmationBasis: '在前置过滤策略日志分析中确认，由于前置过滤决策码匹配错误导致上下文拦截。',
       history: [
         {
           time: '2026-10-06T01:48:23.700Z',
           action: '提交复核',
-          isJudgeAccepted: 'yes',
           isIncluded: 'yes',
-          finalLink: 'TurnGate评估',
+          finalLink: '前置过滤',
           linkReason: '2423'
         }
       ] 
@@ -214,15 +249,12 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
       status: '不纳入', 
       link: '-', 
       linkReason: '未满足调优条件', 
-      isJudgeAccepted: 'no',
-      judgeRejectionReason: '拦截决策符合系统对原型演示业务的隔离规则，非真正异常。',
       isIncluded: 'no',
       exclusionReason: '未满足调优条件',
       history: [
         {
           time: '2026-10-05T09:12:45.300Z',
           action: '提交复核',
-          isJudgeAccepted: 'no',
           isIncluded: 'no',
           finalLink: '-',
           linkReason: '未满足调优条件'
@@ -237,10 +269,8 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
       status: '草稿', 
       link: '未确认', 
       linkReason: '未确认', 
-      isJudgeAccepted: 'yes',
       isIncluded: 'yes',
-      finalLink: '意图识别环节',
-      finalReason: '意图模型将补卡识别为换卡。',
+      finalLink: '意图路由',
       confirmationBasis: '转写文本表明客户明确要补卡。',
       history: [] 
     },
@@ -267,23 +297,15 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
     }
 
     if (shouldPrepopulate) {
-      setIsJudgeAccepted(sample.isJudgeAccepted || '');
-      setJudgeRejectionReason(sample.judgeRejectionReason || '');
       setIsIncluded(sample.isIncluded || '');
-      setFinalLink(sample.finalLink || 'TurnGate评估');
-      setFinalReason(sample.finalReason || '');
+      setFinalLink(sample.finalLink || '前置过滤');
       setConfirmationBasis(sample.confirmationBasis || '');
-      setAdjustmentSuggestion(sample.adjustmentSuggestion || '');
       setExclusionReason(sample.exclusionReason || '');
     } else {
       // Clear/Reset all fields for a fresh review (e.g. status is 已纳入, 不纳入, or 待复核)
-      setIsJudgeAccepted('');
-      setJudgeRejectionReason('');
       setIsIncluded('');
-      setFinalLink('TurnGate评估');
-      setFinalReason('');
+      setFinalLink('前置过滤');
       setConfirmationBasis('');
-      setAdjustmentSuggestion('');
       setExclusionReason('');
     }
     
@@ -299,13 +321,9 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
           status: '草稿', 
           link: '未确认', 
           linkReason: '未确认',
-          isJudgeAccepted,
-          judgeRejectionReason,
           isIncluded,
           finalLink,
-          finalReason,
           confirmationBasis,
-          adjustmentSuggestion,
           exclusionReason
         };
       }
@@ -319,30 +337,16 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
     if (!selectedSampleForReview) return;
     
     // Form Validation
-    if (!isJudgeAccepted) {
-      setSubmitError('请选择是否认可本次 Judge 对该样本的判定及原因！');
-      return;
-    }
-    if (isJudgeAccepted === 'no' && !judgeRejectionReason.trim()) {
-      setSubmitError('请填写否定 Judge 判定的详细依据！');
-      return;
-    }
     if (!isIncluded) {
       setSubmitError('请选择是否纳入调优数据集！');
       return;
     }
-    if (isIncluded === 'yes') {
-      if (!finalReason.trim()) {
-        setSubmitError('请填写最终原因！');
-        return;
-      }
-      if (!confirmationBasis.trim()) {
-        setSubmitError('请填写确认依据！');
-        return;
-      }
-    }
     if (isIncluded === 'no' && !exclusionReason.trim()) {
       setSubmitError('请填写不纳入理由！');
+      return;
+    }
+    if (isIncluded === 'yes' && !confirmationBasis.trim()) {
+      setSubmitError('请填写确认依据！');
       return;
     }
 
@@ -353,10 +357,10 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
         const historyEntry = {
           time: now,
           action: '提交复核',
-          isJudgeAccepted,
           isIncluded,
-          finalLink: isIncluded === 'yes' ? finalLink : '-',
-          linkReason: isIncluded === 'yes' ? (finalReason || '已核实归因') : (exclusionReason || '未满足调优条件')
+          finalLink: finalLink,
+          linkReason: isIncluded === 'yes' ? confirmationBasis : exclusionReason,
+          confirmationBasis
         };
         
         const newHistory = s.history ? [...s.history, historyEntry] : [historyEntry];
@@ -366,31 +370,23 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
             ...s, 
             status: '已纳入', 
             link: finalLink, 
-            linkReason: finalReason || '已核实归因',
+            linkReason: confirmationBasis,
             history: newHistory,
-            isJudgeAccepted,
-            judgeRejectionReason,
             isIncluded,
             finalLink,
-            finalReason,
             confirmationBasis,
-            adjustmentSuggestion,
             exclusionReason
           };
         } else {
           return { 
             ...s, 
             status: '不纳入', 
-            link: '-', 
-            linkReason: exclusionReason || '未满足调优条件',
+            link: finalLink, 
+            linkReason: exclusionReason,
             history: newHistory,
-            isJudgeAccepted,
-            judgeRejectionReason,
             isIncluded,
             finalLink,
-            finalReason,
             confirmationBasis,
-            adjustmentSuggestion,
             exclusionReason
           };
         }
@@ -429,11 +425,9 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
       }
       if (sourceMetric !== '全部来源指标' && item.metricName !== sourceMetric) return false;
       if (evalBatch !== '日常自动评估' && item.batch !== evalBatch) return false;
-      if (reviewProgress === '待复核' && item.progress !== '待复核') return false;
-      if (reviewProgress === '已复核归因' && item.progress !== '已复核归因') return false;
       return true;
     });
-  }, [systemIssues, searchTitle, sourceMetric, evalBatch, reviewProgress]);
+  }, [systemIssues, searchTitle, sourceMetric, evalBatch]);
 
   const paginatedIssues = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -452,9 +446,10 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
     progress: '待处理' | '已纳入' | '未纳入';
     agent: string;
     action?: string;
-    finalReason?: string;
     finalLink?: string;
     exclusionReason?: string;
+    joinIssueMethod?: string;
+    joinIssueTitle?: string;
     associatedIssueId?: string;
     associatedIssueTitle?: string;
   }
@@ -478,7 +473,8 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
       progress: '已纳入',
       agent: '示例数据未提供',
       action: '纳入问题清单',
-      finalReason: '客户表达的是还款协商与还款日延后诉求，意图模型门控识别为贷款提前结清，属于业务门控与意图混淆。',
+      joinIssueMethod: '关联已有问题单',
+      joinIssueTitle: '误拦截率异常',
       finalLink: 'TurnGate评估',
       associatedIssueId: 'BC-mutdc6sk',
       associatedIssueTitle: '误拦截率异常'
@@ -564,45 +560,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
           </h2>
         </div>
 
-        {/* Source Snapshot Card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-            <h2 className="text-[16px] font-bold text-gray-800">来源快照</h2>
-          </div>
-          
-          <div className="space-y-1 mb-5 pl-3 border-l-2 border-gray-100">
-            <p className="text-[14px] text-gray-800 font-bold">
-              {selectedIssue.batch}
-            </p>
-            <p className="text-[13px] text-gray-400 flex items-center gap-3">
-              <span>2026-09-08</span>
-              <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-              <span>全部渠道</span>
-              <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-              <span className="text-blue-500 font-medium">{selectedIssue.metricName}</span>
-              <span className="font-mono text-[12px] text-gray-300">({selectedIssue.metricCode})</span>
-            </p>
-          </div>
-
-          <div className="bg-[#D6E2FF] rounded-xl p-5 flex items-center justify-around text-[14px] border border-blue-100/50">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-gray-400 text-[12px]">关联指标</span>
-              <span className="font-bold text-gray-800 text-[15px]">{selectedIssue.metricName}</span>
-            </div>
-            <div className="w-px h-8 bg-blue-100"></div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-gray-400 text-[12px]">指标值</span>
-              <span className="font-bold text-blue-600 text-[20px]">{selectedIssue.value}</span>
-            </div>
-            <div className="w-px h-8 bg-blue-100"></div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-gray-400 text-[12px]">目标</span>
-              <span className="text-gray-700 font-semibold">{selectedIssue.target}</span>
-            </div>
-          </div>
-        </div>
-
         {/* Sample Review Section */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
           <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -619,20 +576,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
 
           {/* Inner Filter Bar (White Card Container Style) */}
           <div className="p-4 bg-gray-50/30 flex items-center gap-6 border-b border-gray-100 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">复核状态</span>
-              <select 
-                className="h-[32px] px-3 border border-gray-300 rounded text-[13px] outline-none focus:border-blue-500 bg-white text-gray-700 cursor-pointer w-[130px]"
-                value={detailReviewStatus}
-                onChange={(e) => setDetailReviewStatus(e.target.value)}
-              >
-                <option>全部复核状态</option>
-                <option>待复核</option>
-                <option>已纳入</option>
-                <option>不纳入</option>
-                <option>草稿</option>
-              </select>
-            </div>
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">会话</span>
               <input 
@@ -676,7 +619,7 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                 <tr className="bg-[#D6E2FF] text-gray-500 text-[12.5px] border-b border-gray-100">
                   <th className="py-4 px-6 font-semibold w-[25%]">会话</th>
                   <th className="py-4 px-6 font-semibold w-[15%] text-center">会话ID</th>
-                  <th className="py-4 px-6 font-semibold w-[20%]">Judge 原判定原因</th>
+                  <th className="py-4 px-6 font-semibold w-[20%]">错误类型</th>
                   <th className="py-4 px-6 font-semibold w-[15%]">人工最终结论</th>
                   <th className="py-4 px-6 font-semibold w-[15%]">最终环节 / 原因</th>
                   <th className="py-4 px-6 text-center font-semibold">操作</th>
@@ -693,10 +636,7 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                           <span className="font-mono bg-gray-50 border border-gray-100 px-2 py-0.5 rounded text-gray-500 text-[12px]">{s.code}</span>
                         </td>
                         <td className="py-4 px-6">
-                          <div className="flex flex-col gap-1">
-                            <p className="font-mono text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-md w-fit text-[11px] uppercase">{s.judgeResult}</p>
-                            <p className="text-[12.5px] text-gray-600 mt-1">{s.judgeReason}</p>
-                          </div>
+                          <p className="text-[12.5px] text-gray-600">{s.judgeReason}</p>
                         </td>
                         <td className="py-4 px-6">
                           <span className={`px-2.5 py-1 rounded text-[12px] w-fit font-medium ${
@@ -710,7 +650,11 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex flex-col gap-1">
-                            <p className="text-gray-800 font-medium">{s.link}</p>
+                            {s.status !== '不纳入' ? (
+                              <p className="text-gray-800 font-medium">{s.link}</p>
+                            ) : (
+                              <p className="text-gray-800 font-medium">-</p>
+                            )}
                             <p className="text-[12px] text-gray-400 font-mono">{s.linkReason}</p>
                           </div>
                         </td>
@@ -840,7 +784,7 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
             {/* Sample Info Grid - Matching Analysis.tsx grid style */}
             <div className="grid grid-cols-2 gap-y-5 py-6 border-y border-gray-100 my-4">
               <div className="space-y-1">
-                <div className="text-[12px] text-gray-400">评估记录</div>
+                <div className="text-[12px] text-gray-400">会话 ID</div>
                 <div className="text-[14px] font-bold text-gray-800 break-all leading-snug">
                   日常自动评估 | {selectedSampleForReview?.code || 'D08-BLOCK-P-0009'}
                 </div>
@@ -864,17 +808,9 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                 </div>
               </div>
 
-              <div className="mt-5 flex gap-10">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-[12px]">系统输出</span>
-                  <span className="text-gray-900 font-bold text-[14px]">拦截</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-[12px] bg-gray-100 px-1.5 rounded">参考结果</span>
-                  <span className="text-gray-900 font-bold text-[14px]">放行</span>
-                </div>
+              <div className="mt-5 flex justify-end">
                 <button 
-                  className="ml-auto flex items-center gap-2 text-blue-600 hover:text-blue-700 text-[13px] font-bold transition-colors cursor-pointer"
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-[13px] font-bold transition-colors cursor-pointer"
                   onClick={() => setChatModalOpen(true)}
                 >
                   <MessageSquare size={14} />
@@ -885,56 +821,79 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
 
             {/* Section: Judge Info - Clean style matching screenshot */}
             <section className="mb-10">
-              <h3 className="text-[15px] font-bold text-gray-900 mb-6">Judge 原判定与依据</h3>
-              <div className="grid grid-cols-2 gap-x-12 gap-y-6 pb-10 border-b border-gray-100">
-                <div className="space-y-2">
-                  <div className="text-[12px] text-gray-400">原判定</div>
-                  <div className="text-[14px] text-gray-800 font-medium">{selectedSampleForReview?.judgeResult || 'system_error'}</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-[12px] text-gray-400">原错误类型</div>
-                  <div className="text-[14px] text-gray-800 font-medium">{selectedSampleForReview?.judgeReason || '上下文业务诉求被拦截'}</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-[12px] text-gray-400">来源字段</div>
-                  <div className="text-[14px] text-gray-800 font-medium">混淆矩阵标签 / 错误归因</div>
-                  <div className="text-[13px] text-gray-500">当前句依赖前序业务上下文</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-[12px] text-gray-400">来源工作表</div>
-                  <div className="text-[14px] text-gray-800 font-medium">TurnGate评估明细</div>
+              <h3 className="text-[15px] font-bold text-gray-900 mb-4">错误类型</h3>
+              <div className="pb-10 border-b border-gray-100">
+                <div className="text-[14px] text-gray-800 font-medium leading-relaxed">
+                  {selectedSampleForReview?.judgeReason}
                 </div>
               </div>
             </section>
 
-            {/* Section: Execution Log - Matching Analysis.tsx logs style */}
+            {/* Section: Execution Log - Matching Analysis.tsx logs style exactly */}
             <section className="mb-10">
               <h3 className="text-[15px] font-bold text-gray-900 mb-4">逐环节执行记录</h3>
               <div className="divide-y divide-gray-100 border-t border-gray-100">
-                <div className="py-5 flex justify-between items-center">
-                  <div className="w-[120px] flex-shrink-0 text-[13px] text-gray-400">输入与清洗</div>
-                  <div className="flex-1 px-4">
-                    <div className="text-[14px] font-bold text-gray-800">{selectedSampleForReview?.content || '对，帮我办理刚才说的业务。'}</div>
-                    <div className="text-[12px] text-gray-400 mt-1">录音未关联，当前仅有转写及清洗文本</div>
+                {/* 1. 前置过滤 */}
+                <div className="py-6 flex justify-between items-start">
+                  <div className="w-[100px] flex-shrink-0 text-[13px] text-gray-400">前置过滤</div>
+                  <div className="flex-1 px-4 space-y-1">
+                    <div className="text-gray-400 text-[12px]">处理结果</div>
+                    <div className="text-[14px] font-bold text-gray-800">
+                      {selectedSampleForReview?.judgeReason?.includes('拦截') ? '拦截' : '放行'}
+                    </div>
                   </div>
-                  <span className="px-2.5 py-0.5 bg-gray-100 text-gray-500 text-[11px] font-medium rounded">已记录</span>
                 </div>
-                <div className="py-5 flex justify-between items-center">
-                  <div className="w-[120px] flex-shrink-0 text-[13px] text-gray-400">前置过滤</div>
-                  <div className="flex-1 px-4">
-                    <div className="text-[14px] font-bold text-gray-800">实际拦截</div>
-                    <div className="text-[12px] text-gray-400 mt-1 leading-relaxed">当前句依赖前序业务上下文；需复核 SessionState、最近业务诉求与阈值。</div>
-                  </div>
-                  <span className="px-2.5 py-0.5 bg-rose-50 text-rose-500 text-[11px] font-medium rounded border border-rose-100">异常</span>
-                </div>
-                <div className="py-5 flex justify-between items-center">
-                  <div className="w-[120px] flex-shrink-0 text-[13px] text-gray-400">下游链路</div>
-                  <div className="flex-1 px-4">
-                    <div className="text-[14px] font-bold text-gray-800">未执行</div>
-                    <div className="text-[12px] text-gray-400 mt-1">门控拦截后没有改写、检索或LLM记录</div>
-                  </div>
-                  <span className="px-2.5 py-0.5 bg-gray-100 text-gray-500 text-[11px] font-medium rounded">已记录</span>
-                </div>
+
+                {!selectedSampleForReview?.judgeReason?.includes('拦截') && (
+                  <>
+                    {/* 2. Query改写 */}
+                    <div className="py-6 flex justify-between items-start">
+                      <div className="w-[100px] flex-shrink-0 text-[13px] text-gray-400">Query 改写</div>
+                      <div className="flex-1 px-4 space-y-3">
+                        <div>
+                          <div className="text-gray-400 text-[12px]">原内容</div>
+                          <div className="text-[14px] font-bold text-gray-800">
+                            {selectedSampleForReview?.content || '对，帮我办理刚才说的业务。'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-gray-400 text-[12px]">改写结果</div>
+                          <div className="text-[14px] font-bold text-gray-800">
+                            {selectedSampleForReview?.content && selectedSampleForReview.content.includes('补办') 
+                              ? '我想办理信用卡补办业务。' 
+                              : '我的信用卡丢失了，我想办理挂失业务。'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. 混合检索 */}
+                    <div className="py-6 flex justify-between items-start">
+                      <div className="w-[100px] flex-shrink-0 text-[13px] text-gray-400">混合检索</div>
+                      <div className="flex-1 px-4 space-y-1">
+                        <div className="text-gray-400 text-[12px]">匹配到的意图</div>
+                        <div className="text-[14px] font-bold text-gray-800">
+                          {selectedSampleForReview?.content && selectedSampleForReview.content.includes('补办')
+                            ? '信用卡补卡'
+                            : '信用卡挂失'} 账户查询
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4. 意图路由 */}
+                    <div className="py-6 flex justify-between items-start">
+                      <div className="w-[100px] flex-shrink-0 text-[13px] text-gray-400">意图路由</div>
+                      <div className="flex-1 px-4 space-y-1">
+                        <div className="text-gray-400 text-[12px]">识别出的意图</div>
+                        <div className="text-[14px] font-bold text-gray-800">
+                          {selectedSampleForReview?.content && selectedSampleForReview.content.includes('补办')
+                            ? '信用卡补卡'
+                            : '上下文业务诉求'}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -943,49 +902,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
               <h3 className="text-[15px] font-bold text-gray-900 mb-6">人工复核</h3>
               
               <div className="space-y-8">
-                <div className="space-y-4">
-                  <div className="text-[14px] text-gray-700 font-medium">是否认可本次 Judge 对该样本的判定及原因？</div>
-                  <div className="flex items-center gap-10">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input 
-                        type="radio" 
-                        name="judge_accept" 
-                        value="yes"
-                        checked={isJudgeAccepted === 'yes'}
-                        onChange={(e) => setIsJudgeAccepted(e.target.value)}
-                        disabled={drawerMode === 'evidence'}
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed" 
-                      />
-                      <span className="text-[14px] text-gray-600 group-hover:text-gray-900 transition-colors">是，认可判定</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input 
-                        type="radio" 
-                        name="judge_accept" 
-                        value="no"
-                        checked={isJudgeAccepted === 'no'}
-                        onChange={(e) => setIsJudgeAccepted(e.target.value)}
-                        disabled={drawerMode === 'evidence'}
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed" 
-                      />
-                      <span className="text-[14px] text-gray-600 group-hover:text-gray-900 transition-colors">否，不认可判定</span>
-                    </label>
-                  </div>
-                </div>
-
-                  {isJudgeAccepted === 'no' && (
-                    <div className="space-y-3">
-                      <div className="text-[14px] text-gray-700 font-bold">否定依据（必填）</div>
-                      <textarea 
-                        placeholder="请输入否定 Judge 判定的详细依据..."
-                        className="w-full h-32 p-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-blue-500 transition-all placeholder-gray-300 bg-gray-50/20 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                        value={judgeRejectionReason}
-                        onChange={(e) => setJudgeRejectionReason(e.target.value)}
-                        disabled={drawerMode === 'evidence'}
-                      ></textarea>
-                    </div>
-                  )}
-
                 <div className="space-y-4">
                   <div className="text-[14px] text-gray-700 font-medium">是否纳入调优数据集？</div>
                   <div className="flex items-center gap-10">
@@ -1016,65 +932,47 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                   </div>
                 </div>
 
-                {isIncluded === 'yes' && (
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <div className="text-[14px] text-gray-700 font-bold">最终所属环节 <span className="text-red-500">*</span></div>
-                      <select 
-                        className="w-full h-[40px] px-3 border border-gray-200 rounded-lg text-[13px] outline-none focus:border-blue-500 bg-white text-gray-700 cursor-pointer disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                        value={finalLink}
-                        onChange={(e) => setFinalLink(e.target.value)}
-                        disabled={drawerMode === 'evidence'}
-                      >
-                        <option>TurnGate评估</option>
-                        <option>意图识别环节</option>
-                        <option>Query改写环节</option>
-                        <option>混合检索环节</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-[14px] text-gray-700 font-bold">最终原因 <span className="text-red-500">*</span></div>
-                      <textarea 
-                        placeholder="请输入最终确认的原因分析..."
-                        className="w-full h-24 p-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-blue-500 transition-all placeholder-gray-300 bg-gray-50/20 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                        value={finalReason}
-                        onChange={(e) => setFinalReason(e.target.value)}
-                        disabled={drawerMode === 'evidence'}
-                      ></textarea>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-[14px] text-gray-700 font-bold">确认依据 <span className="text-red-500">*</span></div>
-                      <textarea 
-                        placeholder="请输入确认该原因的详细依据..."
-                        className="w-full h-24 p-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-blue-500 transition-all placeholder-gray-300 bg-gray-50/20 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                        value={confirmationBasis}
-                        onChange={(e) => setConfirmationBasis(e.target.value)}
-                        disabled={drawerMode === 'evidence'}
-                      ></textarea>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-[14px] text-gray-700 font-bold">调整建议（选填）</div>
-                      <textarea 
-                        placeholder="请输入对该问题的后续调整建议..."
-                        className="w-full h-24 p-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-blue-500 transition-all placeholder-gray-300 bg-gray-50/20 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                        value={adjustmentSuggestion}
-                        onChange={(e) => setAdjustmentSuggestion(e.target.value)}
-                        disabled={drawerMode === 'evidence'}
-                      ></textarea>
-                    </div>
-                  </div>
-                )}
-
-                {isIncluded === 'no' && (
-                  <div className="space-y-3">
-                    <div className="text-[14px] text-gray-700 font-bold">不纳入理由 <span className="text-red-500">*</span></div>
-                    <textarea 
-                      placeholder="请输入不纳入调优数据集的详细理由..."
-                      className="w-full h-32 p-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-blue-500 transition-all placeholder-gray-300 bg-gray-50/20 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                      value={exclusionReason}
-                      onChange={(e) => setExclusionReason(e.target.value)}
-                      disabled={drawerMode === 'evidence'}
-                    ></textarea>
+                {isIncluded !== '' && (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-top-2">
+                    {isIncluded === 'no' ? (
+                      <div className="space-y-3">
+                        <div className="text-[14px] text-gray-700 font-bold">不纳入理由 <span className="text-red-500">*</span></div>
+                        <textarea 
+                          placeholder="请输入不纳入调优数据集的详细理由..."
+                          className="w-full h-32 p-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-blue-500 transition-all placeholder-gray-300 bg-gray-50/20 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                          value={exclusionReason}
+                          onChange={(e) => setExclusionReason(e.target.value)}
+                          disabled={drawerMode === 'evidence'}
+                        ></textarea>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <div className="text-[14px] text-gray-700 font-bold">最终所属环节 <span className="text-red-500">*</span></div>
+                          <select 
+                            className="w-full h-[40px] px-3 border border-gray-200 rounded-lg text-[13px] outline-none focus:border-blue-500 bg-white text-gray-700 cursor-pointer disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            value={finalLink}
+                            onChange={(e) => setFinalLink(e.target.value)}
+                            disabled={drawerMode === 'evidence'}
+                          >
+                            <option>前置过滤</option>
+                            <option>Query改写</option>
+                            <option>混合检索</option>
+                            <option>意图路由</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-[14px] text-gray-700 font-bold">确认依据 <span className="text-red-500">*</span></div>
+                          <textarea 
+                            placeholder="请输入确认该原因的详细依据..."
+                            className="w-full h-24 p-4 border border-gray-200 rounded-xl text-[13px] outline-none focus:border-blue-500 transition-all placeholder-gray-300 bg-gray-50/20 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            value={agentConfirmationBasis}
+                            onChange={(e) => setAgentConfirmationBasis(e.target.value)}
+                            disabled={drawerMode === 'evidence'}
+                          ></textarea>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1110,13 +1008,13 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
               <div className="mt-12 pt-8 border-t border-gray-100 pb-20">
                 <h3 className="text-[16px] font-bold text-gray-900 mb-6">复核历史</h3>
                 <div className="space-y-8">
-                  {selectedSampleForReview.history.map((h: any, idx: number) => (
+                  {[...selectedSampleForReview.history].reverse().map((h: any, idx: number) => (
                     <div key={idx} className="space-y-1">
                       <div className="text-[13px] text-gray-400">
                         {h.time} · {h.action}
                       </div>
                       <div className="text-[14px] text-gray-600">
-                        {h.isJudgeAccepted === 'yes' ? '认可 Judge' : '不认可 Judge'}; {h.isIncluded === 'yes' ? `纳入; ${h.finalLink}` : '不纳入'}
+                        {h.isIncluded === 'yes' ? '纳入' : '不纳入'}; {h.finalLink}
                         {h.linkReason && <span className="text-gray-400 ml-2">({h.linkReason})</span>}
                       </div>
                     </div>
@@ -1192,52 +1090,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                   />
                 </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">来源指标</span>
-                <select
-                  className="h-[32px] w-[180px] px-2 border border-gray-300 rounded text-[13px] outline-none focus:border-blue-500 bg-white text-gray-700 cursor-pointer"
-                  value={sourceMetric}
-                  onChange={(e) => { setSourceMetric(e.target.value); setCurrentPage(1); }}
-                >
-                  <option value="全部来源指标">全部来源指标</option>
-                  <option value="误拦截率">误拦截率</option>
-                  <option value="漏拦截率">漏拦截率</option>
-                  <option value="模型与 Judge 操作集合一致率">模型与 Judge 操作集合一致率</option>
-                  <option value="模型-Judge 端到端代理准确率">模型-Judge 端到端代理准确率</option>
-                  <option value="RRF 前K命中率">RRF 前K命中率</option>
-                  <option value="Reranker Top1 准确率">Reranker Top1 准确率</option>
-                  <option value="Reranker 直出意图准确率">Reranker 直出意图准确率</option>
-                  <option value="意图识别准确率">意图识别准确率</option>
-                  <option value="拒识命中率">拒识命中率</option>
-                </select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">评估批次</span>
-                <select
-                  className="h-[32px] w-[140px] px-2 border border-gray-300 rounded text-[13px] outline-none focus:border-blue-500 bg-white text-gray-700 cursor-pointer"
-                  value={evalBatch}
-                  onChange={(e) => { setEvalBatch(e.target.value); setCurrentPage(1); }}
-                >
-                  <option value="日常自动评估">日常自动评估</option>
-                  <option value="全量评估">全量评估</option>
-                  <option value="专项抽检">专项抽检</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-800 whitespace-nowrap">复核进度</span>
-                <select
-                  className="h-[32px] w-[140px] px-2 border border-gray-300 rounded text-[13px] outline-none focus:border-blue-500 bg-white text-gray-700 cursor-pointer"
-                  value={reviewProgress}
-                  onChange={(e) => { setReviewProgress(e.target.value); setCurrentPage(1); }}
-                >
-                  <option value="全部复核进度">全部复核进度</option>
-                  <option value="待复核">待复核</option>
-                  <option value="已复核归因">已复核归因</option>
-                </select>
-              </div>
-
               <div className="ml-auto flex items-center gap-2">
                 <button
                   className="h-[32px] px-5 bg-[#2563eb] hover:bg-blue-700 text-white text-[13px] font-medium rounded transition-all cursor-pointer shadow-2xs"
@@ -1283,11 +1135,7 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                     />
                   </th>
                   <th className="py-3 px-4 font-normal">问题</th>
-                  <th className="py-3 px-4 font-normal">来源指标</th>
-                  <th className="py-3 px-4 font-normal">评估批次</th>
-                  <th className="py-3 px-4 font-normal">关联时指标值 / 目标</th>
                   <th className="py-3 px-4 font-normal">样本复核</th>
-                  <th className="py-3 px-4 font-normal">负责人</th>
                   <th className="py-3 px-4 font-normal">更新时间</th>
                   <th className="py-3 px-4 w-[90px] text-right font-normal">操作</th>
                 </tr>
@@ -1312,27 +1160,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                         </div>
                       </td>
                       <td className="py-3.5 px-4 align-top pt-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[13px] font-medium text-gray-800">
-                            {item.metricName}
-                          </span>
-                          <span className="text-[12px] text-gray-400 font-mono">
-                            {item.metricCode}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 align-top pt-4">
-                        <span className="text-[13px] text-gray-700">
-                          {item.batch}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 align-top pt-4">
-                        <div className="flex flex-col">
-                          <span className="text-[14px] font-medium text-gray-800">{item.value}</span>
-                          <span className="text-[12px] text-gray-400 mt-0.5">{item.target}</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 align-top pt-4">
                         <div className="flex flex-col">
                           <span className="text-[13px] text-gray-800">
                             {item.sampleTotal} 条 · 待复核 {item.samplePending}
@@ -1341,9 +1168,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                             复核中 · 可导出 {item.sampleExportable}
                           </span>
                         </div>
-                      </td>
-                      <td className="py-3.5 px-4 align-top pt-4">
-                        <span className="text-[13px] text-gray-800">{item.owner}</span>
                       </td>
                       <td className="py-3.5 px-4 align-top pt-4">
                         <span className="text-[12px] text-gray-500 font-mono">{item.updateTime}</span>
@@ -1363,7 +1187,7 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-gray-400 text-[13px]">
+                    <td colSpan={5} className="py-12 text-center text-gray-400 text-[13px]">
                       暂无相关问题数据
                     </td>
                   </tr>
@@ -1555,12 +1379,15 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                             setSelectedAgentFeedback(item);
                             if (item.progress !== '待处理') {
                               setAgentProcessAction(item.action || (item.progress === '已纳入' ? '纳入问题清单' : '不纳入'));
-                              setAgentFinalReason(item.finalReason || '');
                               setAgentFinalLink(item.finalLink || 'TurnGate评估');
                               setAgentExclusionReason(item.exclusionReason || '');
+                              setJoinIssueMethod(item.joinIssueMethod || '新建问题单');
+                              setJoinIssueTitle(item.joinIssueTitle || '');
+                              if (item.associatedIssueId) {
+                                setSelectedExistingIssueId(item.associatedIssueId);
+                              }
                             } else {
                               setAgentProcessAction('请选择');
-                              setAgentFinalReason('');
                               setAgentFinalLink('请选择');
                               setAgentExclusionReason('');
                               setJoinIssueTitle(item.intent ? `${item.intent}识别与门控异常` : '');
@@ -1697,31 +1524,40 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                 <div className="text-[13px] text-gray-400">反馈状态</div>
                 <div className="text-[15px] font-medium text-gray-900">{selectedAgentFeedback?.progress}</div>
               </div>
-              <div className="space-y-1">
-                <div className="text-[13px] text-gray-400">坐席</div>
-                <div className="text-[15px] font-medium text-gray-900">{selectedAgentFeedback?.agent}</div>
+              <div className="space-y-1 col-span-2">
+                <div className="text-[13px] text-gray-400">坐席原始反馈</div>
+                <div className="text-[15px] font-medium text-gray-900 leading-relaxed">{selectedAgentFeedback?.reason}</div>
               </div>
             </div>
 
-            {/* Content Box */}
-            <div className="bg-[#eff6ff] p-5 rounded-lg mb-4">
-              <div className="text-[12px] text-blue-500 font-medium mb-2 uppercase tracking-wider">客户原话（片段）</div>
-              <div className="text-[15px] font-bold text-gray-900">
-                {selectedAgentFeedback?.content}
+            {/* Session Context */}
+            <section className="mb-10">
+              <h3 className="text-[15px] font-bold text-gray-900 mb-4">会话上下文</h3>
+              <div className="space-y-4">
+                <div className="bg-[#D6E2FF] p-5 rounded border-l-4 border-gray-200">
+                  <div className="text-[11px] text-gray-400 mb-1.5 font-medium uppercase tracking-wider">前序对话</div>
+                  <div className="text-[14px] text-gray-700 leading-relaxed">
+                    客户：刚才咨询补办信用卡。客服：请稍等，我在为您查询。
+                  </div>
+                </div>
+                <div className="bg-[#eff6ff] p-5 rounded border-l-4 border-[#bfdbfe]">
+                  <div className="text-[11px] text-blue-500 mb-1.5 font-medium uppercase tracking-wider">当前客户输入</div>
+                  <div className="text-[15px] font-bold text-gray-900">
+                    {selectedAgentFeedback?.content}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex justify-end mb-6">
-              <button 
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-[13px] font-bold transition-colors cursor-pointer"
-                onClick={() => setChatModalOpen(true)}
-              >
-                <MessageSquare size={14} />
-                <span>查看对话记录</span>
-              </button>
-            </div>
-            <div className="text-[13px] text-gray-500 mb-8 pl-1">
-              坐席原始反馈：<span className="text-gray-700 font-medium">{selectedAgentFeedback?.reason}</span>
-            </div>
+
+              <div className="mt-5 flex justify-end">
+                <button 
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-[13px] font-bold transition-colors cursor-pointer"
+                  onClick={() => setChatModalOpen(true)}
+                >
+                  <MessageSquare size={14} />
+                  <span>查看对话记录</span>
+                </button>
+              </div>
+            </section>
 
             {/* Form Section */}
             <div className="space-y-8">
@@ -1744,17 +1580,53 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
               {agentProcessAction === '纳入问题清单' && (
                 <>
                   <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                    <div className="text-[14px] text-gray-700 font-bold">人工最终原因 / 分析依据</div>
-                    <textarea 
-                      placeholder="请输入最终确认的原因分析或分析依据..."
-                      className={`w-full h-32 p-4 border border-gray-200 rounded-xl text-[14px] outline-none transition-all placeholder-gray-300 ${
-                        selectedAgentFeedback?.progress !== '待处理' ? 'bg-gray-50 text-gray-700 cursor-default' : 'bg-gray-50/20 focus:border-blue-500'
+                    <div className="text-[14px] text-gray-700 font-bold">下一步的处理方式</div>
+                    <select 
+                      className={`w-full h-[44px] px-3 border border-gray-200 rounded-lg text-[14px] outline-none bg-white text-gray-700 ${
+                        selectedAgentFeedback?.progress !== '待处理' ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : 'cursor-pointer focus:border-blue-500'
                       }`}
-                      value={agentFinalReason}
-                      readOnly={selectedAgentFeedback?.progress !== '待处理'}
-                      onChange={(e) => setAgentFinalReason(e.target.value)}
-                    ></textarea>
+                      value={joinIssueMethod}
+                      disabled={selectedAgentFeedback?.progress !== '待处理'}
+                      onChange={(e) => setJoinIssueMethod(e.target.value)}
+                    >
+                      <option value="新建问题单">新建问题单</option>
+                      <option value="关联已有问题单">关联已有问题单</option>
+                    </select>
                   </div>
+
+                  {joinIssueMethod === '新建问题单' ? (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="text-[14px] text-gray-700 font-bold">问题标题</div>
+                      <input 
+                        type="text" 
+                        placeholder="请输入问题标题"
+                        className={`w-full h-[44px] px-3 border border-gray-200 rounded-lg text-[14px] outline-none transition-all placeholder-gray-300 ${
+                          selectedAgentFeedback?.progress !== '待处理' ? 'bg-gray-50 text-gray-700 cursor-default' : 'bg-gray-50/20 focus:border-blue-500'
+                        }`}
+                        value={joinIssueTitle}
+                        readOnly={selectedAgentFeedback?.progress !== '待处理'}
+                        onChange={(e) => setJoinIssueTitle(e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="text-[14px] text-gray-700 font-bold">选择问题单</div>
+                      <select 
+                        className={`w-full h-[44px] px-3 border border-gray-200 rounded-lg text-[14px] outline-none bg-white text-gray-700 ${
+                          selectedAgentFeedback?.progress !== '待处理' ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : 'cursor-pointer focus:border-blue-500'
+                        }`}
+                        value={selectedExistingIssueId || (systemIssues[0]?.id || '')}
+                        disabled={selectedAgentFeedback?.progress !== '待处理'}
+                        onChange={(e) => setSelectedExistingIssueId(e.target.value)}
+                      >
+                        {systemIssues.map((iss) => (
+                          <option key={iss.id} value={iss.id}>
+                            {iss.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                     <div className="text-[14px] text-gray-700 font-bold">最终所属环节</div>
@@ -1767,11 +1639,23 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                       onChange={(e) => setAgentFinalLink(e.target.value)}
                     >
                       <option>请选择</option>
-                      <option>TurnGate评估</option>
-                      <option>意图识别环节</option>
-                      <option>Query改写环节</option>
-                      <option>混合检索环节</option>
+                      <option>前置过滤</option>
+                      <option>Query改写</option>
+                      <option>混合检索</option>
+                      <option>意图路由</option>
                     </select>
+                  </div>
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="text-[14px] text-gray-700 font-bold">确认依据</div>
+                    <textarea 
+                      placeholder="请输入确认依据..."
+                      className={`w-full h-24 p-4 border border-gray-200 rounded-xl text-[14px] outline-none transition-all placeholder-gray-300 ${
+                        selectedAgentFeedback?.progress !== '待处理' ? 'bg-gray-50 text-gray-700 cursor-default' : 'bg-gray-50/20 focus:border-blue-500'
+                      }`}
+                      value={agentConfirmationBasis}
+                      readOnly={selectedAgentFeedback?.progress !== '待处理'}
+                      onChange={(e) => setAgentConfirmationBasis(e.target.value)}
+                    ></textarea>
                   </div>
                 </>
               )}
@@ -1830,149 +1714,6 @@ export default function Badcase({ channel: globalChannel }: BadcaseProps) {
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      </Drawer>
-
-      {/* Join Badcase Issue List Drawer */}
-      <Drawer
-        isOpen={isJoinIssueDrawerOpen}
-        onClose={() => setIsJoinIssueDrawerOpen(false)}
-        title="加入 Badcase 问题清单"
-        size="md"
-      >
-        <div className="flex flex-col h-full -mt-2">
-          <div className="space-y-6 flex-1 px-1">
-            {/* Form Section - matching Analysis.tsx badcase drawer style */}
-            <div className="space-y-5 pt-2">
-              <div className="space-y-2">
-                <label className="text-[13px] text-gray-700">处理方式</label>
-                <select 
-                  className="w-full h-9 px-3 border border-gray-200 rounded-md text-[13px] outline-none focus:border-blue-500 transition-all bg-white text-gray-700 cursor-pointer"
-                  value={joinIssueMethod}
-                  onChange={(e) => setJoinIssueMethod(e.target.value)}
-                >
-                  <option value="新建问题单">新建问题单</option>
-                  <option value="关联已有问题单">关联已有问题单</option>
-                </select>
-              </div>
-
-              {joinIssueMethod === '新建问题单' ? (
-                <div className="space-y-2">
-                  <label className="text-[13px] text-gray-700">问题标题</label>
-                  <input 
-                    type="text" 
-                    className="w-full h-9 px-3 border border-gray-200 rounded-md text-[13px] outline-none focus:border-blue-500 transition-all bg-white text-gray-800"
-                    placeholder="请输入问题标题"
-                    value={joinIssueTitle}
-                    onChange={(e) => setJoinIssueTitle(e.target.value)}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-[13px] text-gray-700">选择问题单</label>
-                  <select 
-                    className="w-full h-9 px-3 border border-gray-200 rounded-md text-[13px] outline-none focus:border-blue-500 transition-all bg-white text-gray-700 cursor-pointer"
-                    value={selectedExistingIssueId || (systemIssues[0]?.id || '')}
-                    onChange={(e) => setSelectedExistingIssueId(e.target.value)}
-                  >
-                    {systemIssues.map((iss) => (
-                      <option key={iss.id} value={iss.id}>
-                        {iss.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {joinIssueMethod === '新建问题单' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[13px] text-gray-700">负责人</label>
-                    <select 
-                      className="w-full h-9 px-3 border border-gray-200 rounded-md text-[13px] outline-none focus:border-blue-500 transition-all bg-white text-gray-700 cursor-pointer"
-                      value={joinIssueOwner}
-                      onChange={(e) => setJoinIssueOwner(e.target.value)}
-                    >
-                      <option>AI运营人员</option>
-                      <option>算法负责人</option>
-                      <option>系统管理员</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[13px] text-gray-700">优先级</label>
-                    <select 
-                      className="w-full h-9 px-3 border border-gray-200 rounded-md text-[13px] outline-none focus:border-blue-500 transition-all bg-white text-gray-700 cursor-pointer"
-                      value={joinIssuePriority}
-                      onChange={(e) => setJoinIssuePriority(e.target.value)}
-                    >
-                      <option value="P1 · 高优先级">P1 · 高优先级</option>
-                      <option value="P2 · 常规">P2 · 常规</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Footer Actions - matching Analysis.tsx badcase drawer style */}
-          <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
-            <button 
-              className="px-4 py-2 text-[13px] text-gray-600 hover:bg-gray-50 border border-gray-200 rounded-md transition-all cursor-pointer"
-              onClick={() => setIsJoinIssueDrawerOpen(false)}
-            >
-              取消
-            </button>
-            <button 
-              className="px-4 py-2 text-[13px] bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-all shadow-sm cursor-pointer"
-              onClick={() => {
-                let createdIssueId = '';
-                let createdIssueTitle = '';
-                if (joinIssueMethod === '新建问题单') {
-                  const title = joinIssueTitle.trim() || `${selectedAgentFeedback?.intent || '意图'}识别异常`;
-                  const created = addIssue({
-                    title: title,
-                    batch: '日常自动评估',
-                    metricName: selectedAgentFeedback?.intent || '意图点踩',
-                    metricCode: selectedAgentFeedback?.code || 'AGENT-FEEDBACK',
-                    value: '异常',
-                    target: '-',
-                    sampleTotal: 1,
-                    samplePending: 1,
-                    sampleExportable: 0,
-                    owner: joinIssueOwner,
-                  });
-                  createdIssueId = created?.id || `BC-${Date.now().toString(36)}`;
-                  createdIssueTitle = title;
-                } else {
-                  const targetIssueId = selectedExistingIssueId || (systemIssues[0]?.id || 'BC-mutdc6sk');
-                  createdIssueId = targetIssueId;
-                  const found = systemIssues.find(i => i.id === targetIssueId);
-                  createdIssueTitle = found ? found.title : '关联已有问题单';
-                  if (targetIssueId) {
-                    updateIssueSamples(targetIssueId, 1);
-                  }
-                }
-                const updated = agentFeedbacks.map(f => {
-                  if (f.id === selectedAgentFeedback?.id) {
-                    return { 
-                      ...f, 
-                      progress: '已纳入' as const,
-                      action: '纳入问题清单',
-                      finalReason: agentFinalReason,
-                      finalLink: agentFinalLink,
-                      associatedIssueId: createdIssueId,
-                      associatedIssueTitle: createdIssueTitle
-                    };
-                  }
-                  return f;
-                });
-                setAgentFeedbacks(updated);
-                setIsJoinIssueDrawerOpen(false);
-              }}
-            >
-              确定
-            </button>
           </div>
         </div>
       </Drawer>

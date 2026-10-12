@@ -2840,7 +2840,7 @@ export default function Assets({ channel }: AssetsProps) {
                   onClick={() => setIsUploadDatasetModalOpen(true)}
                   className="px-3 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors cursor-pointer shadow-2xs"
                 >
-                  + 添加关联数据集
+                  + 上传数据集
                 </button>
               </div>
 
@@ -2900,17 +2900,24 @@ export default function Assets({ channel }: AssetsProps) {
                             <div className="flex items-center justify-center gap-3.5">
                               <button
                                 type="button"
-                                onClick={() => setViewingDatasetModal(ds)}
+                                onClick={() => {
+                                   const link = document.createElement("a");
+                                   link.href = ds.url || "#";
+                                   link.download = ds.fileName || "dataset.csv";
+                                   document.body.appendChild(link);
+                                   link.click();
+                                   document.body.removeChild(link);
+                                 }}
                                 className="text-[#2563eb] hover:text-blue-700 font-medium cursor-pointer text-xs transition-colors shrink-0"
                               >
-                                查看
+                                下载
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveDataset(ds.id, ds.name)}
                                 className="text-red-500 hover:text-red-700 font-medium cursor-pointer text-xs transition-colors shrink-0"
                               >
-                                解除关联
+                                删除
                               </button>
                             </div>
                           </td>

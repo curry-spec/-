@@ -45,7 +45,7 @@ export default function Validation({ channel }: ValidationProps) {
       status: ['待观察'],
       asset: '混合检索 · 向量检索模型',
       description: '对补卡/换卡业务高频意图进行精细化排序重打分，提升Top1相关性',
-      sourceBadcase: 'BC-mutdc6sk (补卡换卡意图误拦截)',
+      sourceBadcase: '',
       assignee: 'AI运营人员'
     },
     {
@@ -502,7 +502,7 @@ export default function Validation({ channel }: ValidationProps) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 col-span-2">
                     <label className="block font-medium text-gray-700">任务名称</label>
                     <input 
                       type="text"
@@ -511,24 +511,6 @@ export default function Validation({ channel }: ValidationProps) {
                       value={taskForm.name}
                       onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
                     />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block font-medium text-gray-700">负责人</label>
-                    <div className="relative">
-                      <select 
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-xs outline-none focus:border-blue-500 bg-white appearance-none cursor-pointer pr-8"
-                        value={taskForm.assignee}
-                        onChange={(e) => setTaskForm({ ...taskForm, assignee: e.target.value })}
-                      >
-                        <option value="">请选择负责人</option>
-                        <option value="AI运营人员">AI运营人员</option>
-                        <option value="张三 (算法工程师)">张三 (算法工程师)</option>
-                        <option value="李四 (提示词专家)">李四 (提示词专家)</option>
-                        <option value="王五 (产品经理)">王五 (产品经理)</option>
-                        <option value="赵六 (评估运营)">赵六 (评估运营)</option>
-                      </select>
-                      <ChevronDown size={14} className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
-                    </div>
                   </div>
                 </div>
 
@@ -649,49 +631,14 @@ export default function Validation({ channel }: ValidationProps) {
                 </div>
               </div>
 
-              {/* Section 2: 跟踪对象与指标 */}
+              {/* Section 2: 跟踪指标 */}
               <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-sm text-gray-900">跟踪对象与指标</h3>
-                  <span className="text-gray-400 text-xs">Badcase 仅用于追溯；指标来自正式指标目录，可独立选择。</span>
+                  <h3 className="font-bold text-sm text-gray-900">跟踪指标</h3>
+                  <span className="text-gray-400 text-xs">指标来自正式指标目录，可独立选择。</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Left Card: 来源 Badcase */}
-                  <div className="border border-gray-200 rounded-lg p-5 bg-gray-50/60 space-y-4">
-                    <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-                      <span className="font-semibold text-gray-800">来源 Badcase (可选)</span>
-                      <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold text-[11px]">
-                        {taskForm.sourceBadcase ? '1' : '0'}
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <select 
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-xs outline-none focus:border-blue-500 bg-white appearance-none cursor-pointer pr-8 font-medium text-gray-800"
-                        value={taskForm.sourceBadcase}
-                        onChange={(e) => {
-                          const badcaseVal = e.target.value;
-                          const foundIssue = issues.find(i => `${i.id} (${i.title})` === badcaseVal);
-                          const targetMetric = foundIssue?.metricName;
-                          setTaskForm(prev => ({
-                            ...prev,
-                            sourceBadcase: badcaseVal,
-                            primaryMetrics: targetMetric && !prev.primaryMetrics.includes(targetMetric)
-                              ? [...prev.primaryMetrics, targetMetric]
-                              : prev.primaryMetrics
-                          }));
-                        }}
-                      >
-                        <option value="">请选择来源 Badcase</option>
-                        {issues.map(issue => (
-                          <option key={issue.id} value={`${issue.id} (${issue.title})`}>
-                            {issue.id} ({issue.title})
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown size={14} className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 gap-6">
 
                   {/* Right Card: 主关注指标 */}
                   <div className="border border-emerald-300 rounded-lg p-5 bg-emerald-50/20 space-y-4">

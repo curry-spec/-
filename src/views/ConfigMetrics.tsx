@@ -123,9 +123,7 @@ function EditModal({ metric, onSave, onClose }: EditModalProps) {
 }
 
 export default function ConfigMetrics() {
-  const [metrics, setMetrics] = useState<Metric[]>(
-    initialMetrics.filter(m => m.stage !== undefined)
-  );
+  const [metrics, setMetrics] = useState<Metric[]>(initialMetrics);
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('');
   const [editingMetric, setEditingMetric] = useState<Metric | null>(null);

@@ -512,20 +512,6 @@ export default function ValidationDetail({ task, onBack }: ValidationDetailProps
         <div className="grid grid-cols-3 gap-y-4 gap-x-12 text-xs">
           <div className="space-y-3">
             <div>
-              <div className="text-gray-400 mb-1">负责人</div>
-              <div className="text-gray-800 font-medium">{task.assignee || 'AI运营人员 (人工登记)'}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 mb-1">关联Badcase问题单</div>
-              <div className="text-blue-600 font-medium hover:underline cursor-pointer">
-                {task.sourceBadcase && task.sourceBadcase !== '未关联' ? task.sourceBadcase : '未关联'}
-              </div>
-            </div>
-            {/* Removed Timezone/Version */}
-          </div>
-
-          <div className="space-y-3">
-            <div>
               <div className="text-gray-400 mb-1">优化对象</div>
               <div className="text-gray-800 font-medium">{task.object || '提示词'}</div>
             </div>
@@ -539,8 +525,8 @@ export default function ValidationDetail({ task, onBack }: ValidationDetailProps
 
           <div className="space-y-3">
             <div>
-              <div className="text-gray-400 mb-1">版本</div>
-              <div className="text-gray-800 font-medium font-mono">{task.versions || '未记录 → 未记录'}</div>
+              <div className="text-gray-400 mb-1">负责人</div>
+              <div className="text-gray-800 font-medium">{task.assignee || 'AI运营人员 (人工登记)'}</div>
             </div>
             <div>
               <div className="text-gray-400 mb-1">优化说明</div>
@@ -548,6 +534,21 @@ export default function ValidationDetail({ task, onBack }: ValidationDetailProps
                 {task.description && task.description.trim() ? task.description : '暂无优化说明'}
               </div>
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <div className="text-gray-400 mb-1">版本</div>
+              <div className="text-gray-800 font-medium font-mono">{task.versions || '未记录 → 未记录'}</div>
+            </div>
+            {task.sourceBadcase && task.sourceBadcase !== '未关联' && (
+              <div>
+                <div className="text-gray-400 mb-1">关联Badcase问题单</div>
+                <div className="text-blue-600 font-medium hover:underline cursor-pointer">
+                  {task.sourceBadcase}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
