@@ -262,64 +262,65 @@ function AddAssetModal({ defaultStage, onClose, onSave }: AddAssetModalProps) {
               </div>
 
               {/* File Upload */}
-              <div className="col-span-2 space-y-1.5">
-                <label className="text-sm font-medium text-gray-700 flex items-center">
-                  {!isModelType && <span className="text-red-500 mr-1">*</span>}
-                  原始文件
-                  {isModelType && <span className="text-xs text-gray-400 font-normal ml-1.5">（选填）</span>}
-                </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full px-3 py-2.5 border rounded-md flex items-center justify-between transition-all cursor-pointer ${
-                    errors.file 
-                      ? 'border-red-500 bg-red-50/20' 
-                      : 'border-gray-300 hover:border-blue-500 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                      className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 rounded text-sm font-normal shrink-0 transition-colors cursor-pointer"
-                    >
-                      选择文件
-                    </button>
-                    {selectedFile ? (
-                      <div className="flex items-center gap-2 text-sm text-gray-800 font-medium truncate">
-                        <FileText size={16} className="text-blue-600 shrink-0" />
-                        <span className="truncate">{selectedFile.name}</span>
-                        <span className="text-xs text-gray-400 font-normal shrink-0">
-                          ({(selectedFile.size / 1024).toFixed(1)} KB)
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-400">未选择任何文件</span>
+              {!isModelType && (
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
+                    <span className="text-red-500 mr-1">*</span>
+                    原始文件
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-full px-3 py-2.5 border rounded-md flex items-center justify-between transition-all cursor-pointer ${
+                      errors.file 
+                        ? 'border-red-500 bg-red-50/20' 
+                        : 'border-gray-300 hover:border-blue-500 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 rounded text-sm font-normal shrink-0 transition-colors cursor-pointer"
+                      >
+                        选择文件
+                      </button>
+                      {selectedFile ? (
+                        <div className="flex items-center gap-2 text-sm text-gray-800 font-medium truncate">
+                          <FileText size={16} className="text-blue-600 shrink-0" />
+                          <span className="truncate">{selectedFile.name}</span>
+                          <span className="text-xs text-gray-400 font-normal shrink-0">
+                            ({(selectedFile.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">未选择任何文件</span>
+                      )}
+                    </div>
+                    {selectedFile && (
+                      <button
+                        type="button"
+                        onClick={handleClearFile}
+                        className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors shrink-0 cursor-pointer"
+                        title="移除已选文件"
+                      >
+                        <X size={16} />
+                      </button>
                     )}
                   </div>
-                  {selectedFile && (
-                    <button
-                      type="button"
-                      onClick={handleClearFile}
-                      className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors shrink-0 cursor-pointer"
-                      title="移除已选文件"
-                    >
-                      <X size={16} />
-                    </button>
+                  {errors.file && (
+                    <p className="text-xs text-red-500">{errors.file}</p>
                   )}
                 </div>
-                {errors.file && (
-                  <p className="text-xs text-red-500">{errors.file}</p>
-                )}
-              </div>
+              )}
 
               {/* Model-specific fields */}
               {['分类模型', '微调模型', '评估模型'].includes(formData.type) && (
@@ -435,52 +436,54 @@ function AddVersionModal({ asset, onClose, onSave }: AddVersionModalProps) {
         {/* Form Body */}
         <div className="p-6 space-y-5 bg-white overflow-y-auto max-h-[75vh]">
           {/* 新版本文件 */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-normal text-gray-600">新版本文件</label>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setSelectedFile(e.target.files[0]);
-                }
-              }} 
-            />
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white flex items-center justify-between cursor-pointer hover:border-blue-400 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    fileInputRef.current?.click();
-                  }}
-                  className="px-2.5 py-1 text-xs border border-gray-300 rounded bg-[#f5f5f5] hover:bg-gray-200 text-gray-800 transition-colors cursor-pointer"
-                >
-                  选择文件
-                </button>
-                <span className="text-xs text-gray-500">
-                  {selectedFile ? selectedFile.name : '未选择任何文件'}
-                </span>
+          {!isModel && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-normal text-gray-600">新版本文件</label>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }} 
+              />
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white flex items-center justify-between cursor-pointer hover:border-blue-400 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="px-2.5 py-1 text-xs border border-gray-300 rounded bg-[#f5f5f5] hover:bg-gray-200 text-gray-800 transition-colors cursor-pointer"
+                  >
+                    选择文件
+                  </button>
+                  <span className="text-xs text-gray-500">
+                    {selectedFile ? selectedFile.name : '未选择任何文件'}
+                  </span>
+                </div>
+                {selectedFile && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="text-gray-400 hover:text-red-500 cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
-              {selectedFile && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedFile(null);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                  }}
-                  className="text-gray-400 hover:text-red-500 cursor-pointer"
-                >
-                  <X size={14} />
-                </button>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Model Specific Fields (Image 2 style) */}
           {isModel && (
