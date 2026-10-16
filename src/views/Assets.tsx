@@ -79,10 +79,7 @@ function AddAssetModal({ defaultStage, onClose, onSave }: AddAssetModalProps) {
     type: '',
     description: '',
     modelIdentifier: '',
-    baseModel: '',
-    modelArtifactLocation: '',
-    modelUsage: '',
-    trainingMethod: ''
+    baseModel: ''
   });
 
   const isModelType = formData.type.includes('模型');
@@ -347,36 +344,6 @@ function AddAssetModal({ defaultStage, onClose, onSave }: AddAssetModalProps) {
                       onChange={(e) => setFormData({ ...formData, baseModel: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-gray-700">模型制品位置</label>
-                    <input
-                      type="text"
-                      placeholder="请输入模型制品位置"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                      value={formData.modelArtifactLocation}
-                      onChange={(e) => setFormData({ ...formData, modelArtifactLocation: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-gray-700">模型用途</label>
-                    <input
-                      type="text"
-                      placeholder="请输入模型用途"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                      value={formData.modelUsage}
-                      onChange={(e) => setFormData({ ...formData, modelUsage: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-sm font-medium text-gray-700">训练 / 微调方式</label>
-                    <input
-                      type="text"
-                      placeholder="请输入训练/微调方式"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                      value={formData.trainingMethod}
-                      onChange={(e) => setFormData({ ...formData, trainingMethod: e.target.value })}
-                    />
-                  </div>
                 </>
               )}
 
@@ -438,9 +405,6 @@ function AddVersionModal({ asset, onClose, onSave }: AddVersionModalProps) {
   // Model specific states (all start empty for user to fill)
   const [modelIdentifier, setModelIdentifier] = useState('');
   const [baseModel, setBaseModel] = useState('');
-  const [artifactLocation, setArtifactLocation] = useState('');
-  const [modelUsage, setModelUsage] = useState('');
-  const [trainingMethod, setTrainingMethod] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -449,10 +413,7 @@ function AddVersionModal({ asset, onClose, onSave }: AddVersionModalProps) {
       file: selectedFile,
       description,
       modelIdentifier,
-      baseModel,
-      artifactLocation,
-      modelUsage,
-      trainingMethod
+      baseModel
     });
   };
 
@@ -540,33 +501,6 @@ function AddVersionModal({ asset, onClose, onSave }: AddVersionModalProps) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 transition-colors"
                   value={baseModel}
                   onChange={(e) => setBaseModel(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-normal text-gray-600">制品位置</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 transition-colors"
-                  value={artifactLocation}
-                  onChange={(e) => setArtifactLocation(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-normal text-gray-600">模型用途</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 transition-colors"
-                  value={modelUsage}
-                  onChange={(e) => setModelUsage(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-normal text-gray-600">训练 / 微调方式</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 transition-colors"
-                  value={trainingMethod}
-                  onChange={(e) => setTrainingMethod(e.target.value)}
                 />
               </div>
             </div>
@@ -923,12 +857,9 @@ function getModelDetails(asset: Asset, version?: AssetVersion) {
   if (asset.name.toLowerCase().includes('fasttext') || (asset.stageId === 'filter' && asset.type === '分类模型')) {
     return {
       name: 'FastText',
-      purpose: '前置过滤意图快速分类与高吞吐门控拦截 (TurnGate 二分类与规则兜底)',
-      trainingMethod: '有监督轻量化分类训练 (Supervised FastText / N-gram 词袋特征)',
       source: '生产模型服务注册中心 (2026-09-22)',
       originalNote: '前置过滤: FastText 门控轻量级分类模型，支持 10ms 级快速推断与低延迟安全拦截',
       baseModel: 'fasttext-chinese-base-v2',
-      artifactLocation: `s3://algo-models/turn_gate/fasttext_v${verStr}.bin`,
       versionNote: '已完成门控分类规则调优，离线测试集准确率 98.6%，平均响应时延 11.8ms。'
     };
   }
@@ -936,35 +867,26 @@ function getModelDetails(asset: Asset, version?: AssetVersion) {
   if (asset.type === '分类模型') {
     return {
       name: asset.name,
-      purpose: '意图识别与前置文本分类',
-      trainingMethod: '有监督文本分类训练 (Supervised Multi-class Training)',
       source: '模型注册中心 (2026-09-22)',
       originalNote: `${asset.stageName}: ${asset.name} 离线文本分类模型`,
       baseModel: 'chinese-roberta-wwm-ext',
-      artifactLocation: `s3://algo-models/classifier/${asset.name.toLowerCase()}_v${verStr}/`,
       versionNote: '已完成分类准确率调优，支持高并发低延迟推断。'
     };
   } else if (asset.type === '微调模型') {
     return {
       name: asset.name,
-      purpose: '大语言模型指令精调与 Query 结构化改写 / 意图泛化理解',
-      trainingMethod: 'LoRA 指令微调 / 全量 SFT 参数精调 (基于 50 万条行业对话交互语料)',
       source: '大模型微调实验平台登记 (2026-09-22)',
       originalNote: `${asset.stageName}: ${asset.name} 领域微调大模型，专用于复杂场景指代消解与语义抽取`,
       baseModel: 'Qwen2.5-7B-Instruct / Qwen3-Base',
-      artifactLocation: `s3://algo-models/finetuned/${asset.name.toLowerCase()}_lora_v${verStr}/`,
       versionNote: '增强了槽位完整通过率与语义忠实度，解决了历史指代消解丢失核心主语的缺陷。'
     };
   } else {
     // 评估模型
     return {
       name: asset.name,
-      purpose: '稠密向量表征 (Embedding) 计算与混合检索候选 Top-K 深度重排序 (Reranker)',
-      trainingMethod: '多任务对比学习微调 (Contrastive Fine-tuning / InfoNCE Loss)',
       source: '用户确认模型清单 (2026-09-18)',
       originalNote: `${asset.stageName}: ${asset.name} (BAAI 向量与重排体系，支持跨长文本匹配)`,
       baseModel: 'BAAI/bge-m3 / BAAI/bge-reranker-large',
-      artifactLocation: `s3://algo-models/retrieval/${asset.name.toLowerCase()}_fp16_v${verStr}/`,
       versionNote: '优化了长查询匹配与复杂领域专有名词权重，Reranker Top1 准确率达到 92.4%。'
     };
   }
@@ -2766,16 +2688,6 @@ export default function Assets({ channel }: AssetsProps) {
                     <div className="text-sm font-medium text-gray-900">{modelInfo.name}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 mb-1.5 font-normal">模型用途</div>
-                    <div className="text-sm font-medium text-gray-900">{modelInfo.purpose}</div>
-                  </div>
-
-                  {/* Row 2 */}
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1.5 font-normal">训练 / 微调方式</div>
-                    <div className="text-sm font-medium text-gray-900">{modelInfo.trainingMethod}</div>
-                  </div>
-                  <div>
                     <div className="text-xs text-gray-400 mb-1.5 font-normal">信息来源</div>
                     <div className="text-sm font-medium text-gray-900">{modelInfo.source}</div>
                   </div>
@@ -2791,10 +2703,6 @@ export default function Assets({ channel }: AssetsProps) {
                   </div>
 
                   {/* Row 4 */}
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1.5 font-normal">制品位置</div>
-                    <div className="text-sm font-medium text-gray-900">{modelInfo.artifactLocation}</div>
-                  </div>
                   <div>
                     <div className="text-xs text-gray-400 mb-1.5 font-normal">版本说明</div>
                     <div className="text-sm font-medium text-gray-900 leading-relaxed">{modelInfo.versionNote}</div>

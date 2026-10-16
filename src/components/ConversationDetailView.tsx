@@ -132,38 +132,41 @@ export default function ConversationDetailView({ conversationId, onBack }: { con
           </div>
 
           {/* Analysis Content Area */}
-          <div className="flex-1 overflow-y-auto p-10 space-y-10">
+          <div className="flex-1 overflow-y-auto p-10 space-y-12 bg-white">
             {/* Selected Sentence Box */}
             <div className="bg-[#f0f7ff] border border-blue-100 rounded-xl p-6 flex items-start gap-5 shadow-sm">
               <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-lg border-2 border-white">
                 <User size={20} />
               </div>
               <div className="space-y-1">
-                <div className="text-[12px] text-black font-medium tracking-tight">当前选中的客户语句：</div>
+                <div className="text-[12px] text-gray-500 font-medium tracking-tight">当前选中的客户语句：</div>
                 <div className="text-[15px] font-bold text-black">{selectedMessage.content}</div>
               </div>
             </div>
 
             {analysis && (
-              <div className="space-y-8 text-black">
+              <div className="space-y-12">
                 {/* Step 1: 前置过滤 */}
-                <div className="flex gap-8">
+                <div className="flex gap-8 group">
                   <div className="flex flex-col items-center shrink-0">
-                    <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-[14px] z-10 shadow-md ring-4 ring-white">1</div>
-                    <div className="w-0.5 flex-1 bg-gray-200 mt-2"></div>
+                    <div className="w-10 h-10 rounded-full bg-[#1890ff] flex items-center justify-center text-white font-bold text-[16px] z-10 shadow-md ring-4 ring-white group-hover:scale-110 transition-transform">1</div>
+                    <div className="w-[1.5px] flex-1 bg-gray-100 mt-2"></div>
                   </div>
-                  <div className="flex-1 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                    <h4 className="font-bold text-[18px] text-black mb-8">前置过滤</h4>
-                    <div className="grid grid-cols-2 gap-10">
-                      <div className="space-y-3">
-                        <div className="text-[13px] text-black font-medium">模型结果</div>
-                        <div className="inline-flex items-center px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-lg text-[14px] font-bold text-black shadow-xs">
+                  <div className="flex-1 bg-white rounded-xl border border-gray-100 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all">
+                    <h4 className="font-bold text-[18px] text-black mb-8 flex items-center gap-2">
+                      <div className="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+                      前置过滤
+                    </h4>
+                    <div className="grid grid-cols-2 gap-12">
+                      <div className="space-y-4">
+                        <div className="text-[14px] text-gray-400 font-medium">模型结果</div>
+                        <div className="inline-flex items-center px-6 py-3 bg-gray-50 border border-gray-100 rounded-lg text-[15px] font-bold text-black shadow-sm">
                           {analysis.filter.model}
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        <div className="text-[13px] text-black font-medium">评估模型结果</div>
-                        <div className="inline-flex items-center px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-lg text-[14px] font-bold text-black shadow-xs">
+                      <div className="space-y-4">
+                        <div className="text-[14px] text-gray-400 font-medium">评估模型结果</div>
+                        <div className="inline-flex items-center px-6 py-3 bg-gray-50 border border-gray-100 rounded-lg text-[15px] font-bold text-black shadow-sm">
                           {analysis.filter.evaluation}
                         </div>
                       </div>
@@ -171,84 +174,101 @@ export default function ConversationDetailView({ conversationId, onBack }: { con
                   </div>
                 </div>
 
-                {analysis.rewriting && (
-                  <>
-                    {/* Step 2: Query改写 */}
-                    <div className="flex gap-8">
-                      <div className="flex flex-col items-center shrink-0">
-                        <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-[14px] z-10 shadow-md ring-4 ring-white">2</div>
-                        <div className="w-0.5 flex-1 bg-gray-200 mt-2"></div>
-                      </div>
-                      <div className="flex-1 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                        <h4 className="font-bold text-[18px] text-black mb-8">Query改写</h4>
-                        <div className="grid grid-cols-3 gap-10">
-                          <div className="space-y-3">
-                            <div className="text-[13px] text-black font-medium">模型改写类型</div>
-                            <div className="bg-gray-50 p-4 rounded-xl text-[13px] text-black border border-gray-100 font-medium">{analysis.rewriting.type}</div>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="text-[13px] text-black font-medium">评估模型改写类型</div>
-                            <div className="bg-gray-50 p-4 rounded-xl text-[13px] text-black border border-gray-100 font-medium">{analysis.rewriting.evalType}</div>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="text-[13px] text-black font-medium">改写结果</div>
-                            <div className="bg-gray-50 p-4 rounded-xl text-[13px] text-black border border-gray-100 font-bold">{analysis.rewriting.result}</div>
-                          </div>
+                {/* Step 2: Query改写 */}
+                <div className="flex gap-8 group">
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#1890ff] flex items-center justify-center text-white font-bold text-[16px] z-10 shadow-md ring-4 ring-white group-hover:scale-110 transition-transform">2</div>
+                    <div className="w-[1.5px] flex-1 bg-gray-100 mt-2"></div>
+                  </div>
+                  <div className="flex-1 bg-white rounded-xl border border-gray-100 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all">
+                    <h4 className="font-bold text-[18px] text-black mb-8 flex items-center gap-2">
+                      <div className="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+                      Query改写
+                    </h4>
+                    {analysis.rewriting ? (
+                      <div className="grid grid-cols-3 gap-12">
+                        <div className="space-y-4">
+                          <div className="text-[14px] text-gray-400 font-medium">模型改写类型</div>
+                          <div className="bg-gray-50 p-5 rounded-xl text-[14px] text-black border border-gray-100 font-bold shadow-sm">{analysis.rewriting.type}</div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="text-[14px] text-gray-400 font-medium">评估模型改写类型</div>
+                          <div className="bg-gray-50 p-5 rounded-xl text-[14px] text-black border border-gray-100 font-bold shadow-sm">{analysis.rewriting.evalType}</div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="text-[14px] text-gray-400 font-medium">改写结果</div>
+                          <div className="bg-gray-50 p-5 rounded-xl text-[14px] text-black border border-gray-100 font-bold shadow-sm leading-relaxed">{analysis.rewriting.result}</div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-gray-400 text-[14px] italic">无需改写</div>
+                    )}
+                  </div>
+                </div>
 
-                    {/* Step 3: 混合检索 */}
-                    <div className="flex gap-8">
-                      <div className="flex flex-col items-center shrink-0">
-                        <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-[14px] z-10 shadow-md ring-4 ring-white">3</div>
-                        <div className="w-0.5 flex-1 bg-gray-200 mt-2"></div>
-                      </div>
-                      <div className="flex-1 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                        <h4 className="font-bold text-[18px] text-black mb-8">混合检索</h4>
-                        <div className="grid grid-cols-2 gap-10">
-                          <div className="space-y-3">
-                            <div className="text-[13px] text-black font-medium">Reranker Top1意图</div>
-                            <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[13px] text-black font-bold shadow-xs">
-                              {analysis.retrieval?.top1}
-                            </div>
+                {/* Step 3: 混合检索 */}
+                <div className="flex gap-8 group">
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#1890ff] flex items-center justify-center text-white font-bold text-[16px] z-10 shadow-md ring-4 ring-white group-hover:scale-110 transition-transform">3</div>
+                    <div className="w-[1.5px] flex-1 bg-gray-100 mt-2"></div>
+                  </div>
+                  <div className="flex-1 bg-white rounded-xl border border-gray-100 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all">
+                    <h4 className="font-bold text-[18px] text-black mb-8 flex items-center gap-2">
+                      <div className="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+                      混合检索
+                    </h4>
+                    {analysis.retrieval ? (
+                      <div className="grid grid-cols-2 gap-12">
+                        <div className="space-y-4">
+                          <div className="text-[14px] text-gray-400 font-medium">Reranker Top1意图</div>
+                          <div className="px-6 py-3 bg-gray-50 border border-gray-100 rounded-lg text-[15px] text-black font-bold shadow-sm">
+                            {analysis.retrieval.top1}
                           </div>
-                          <div className="space-y-3">
-                            <div className="text-[13px] text-black font-medium">评估模型识别意图</div>
-                            <div className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-[13px] text-black font-bold shadow-xs">
-                              {analysis.retrieval?.evaluation}
-                            </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="text-[14px] text-gray-400 font-medium">评估模型识别意图</div>
+                          <div className="px-6 py-3 bg-gray-50 border border-gray-100 rounded-lg text-[15px] text-black font-bold shadow-sm">
+                            {analysis.retrieval.evaluation}
                           </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-gray-400 text-[14px] italic">未触发检索</div>
+                    )}
+                  </div>
+                </div>
 
-                    {/* Step 4: 意图路由 */}
-                    <div className="flex gap-8">
-                      <div className="flex flex-col items-center shrink-0">
-                        <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-[14px] z-10 shadow-md ring-4 ring-white">4</div>
-                        <div className="w-0.5 h-10 bg-gray-100 mt-2 rounded-full"></div>
-                      </div>
-                      <div className="flex-1 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                        <h4 className="font-bold text-[18px] text-black mb-8">意图路由</h4>
-                        <div className="grid grid-cols-2 gap-10">
-                          <div className="space-y-3">
-                            <div className="text-[13px] text-black font-medium">模型识别意图</div>
-                            <div className="inline-flex items-center px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-lg text-[14px] text-black font-bold shadow-xs">
-                              {analysis.routing.model}
-                            </div>
+                {/* Step 4: 意图路由 */}
+                <div className="flex gap-8 group">
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#1890ff] flex items-center justify-center text-white font-bold text-[16px] z-10 shadow-md ring-4 ring-white group-hover:scale-110 transition-transform">4</div>
+                    <div className="w-[1.5px] h-10 bg-gray-50 mt-2 rounded-full"></div>
+                  </div>
+                  <div className="flex-1 bg-white rounded-xl border border-gray-100 p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all">
+                    <h4 className="font-bold text-[18px] text-black mb-8 flex items-center gap-2">
+                      <div className="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+                      意图路由
+                    </h4>
+                    {analysis.routing ? (
+                      <div className="grid grid-cols-2 gap-12">
+                        <div className="space-y-4">
+                          <div className="text-[14px] text-gray-400 font-medium">模型识别意图</div>
+                          <div className="inline-flex items-center px-6 py-3 bg-gray-50 border border-gray-100 rounded-lg text-[15px] text-black font-bold shadow-sm">
+                            {analysis.routing.model}
                           </div>
-                          <div className="space-y-3">
-                            <div className="text-[13px] text-black font-medium">评估模型识别意图</div>
-                            <div className="inline-flex items-center px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-lg text-[14px] text-black font-bold shadow-xs">
-                              {analysis.routing.evaluation}
-                            </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="text-[14px] text-gray-400 font-medium">评估模型识别意图</div>
+                          <div className="inline-flex items-center px-6 py-3 bg-gray-50 border border-gray-100 rounded-lg text-[15px] text-black font-bold shadow-sm">
+                            {analysis.routing.evaluation}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </>
-                )}
+                    ) : (
+                      <div className="text-gray-400 text-[14px] italic">未路由</div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

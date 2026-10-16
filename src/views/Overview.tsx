@@ -62,9 +62,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       isPass = value >= 95.0;
     } else if (name === '全过程平均耗时') {
       isPass = value <= 750;
+    } else if (name === '全过程样本总量') {
+      isPass = true;
     }
 
-    const unit = name === '全过程平均耗时' ? 'ms' : '%';
+    const unit = name === '全过程平均耗时' ? 'ms' : (name === '全过程样本总量' ? '次' : '%');
     const passStatusText = isPass ? '达标' : '不达标';
 
     return (
@@ -141,13 +143,15 @@ export default function Overview({
   const trendChartData = useMemo(() => {
     const results = [];
     const baseTrends = [
-      { date: '09-02', '全过程准确率': 93.1, '误拦截率': 4.1, '漏拦截率': 21.0, '模型与 Judge 操作集合一致率': 97.0, '模型-Judge 端到端代理准确率': 97.2, 'RRF 前K命中率': 97.4, 'Reranker Top1 准确率': 94.3, 'Reranker 直出意图准确率': 94.6, '意图识别准确率': 97.6, '拒识命中率': 90.0, '全过程人工标注准确率': 96.2, '评估模型准确率': 94.5, '全过程平均耗时': 702 },
-      { date: '09-03', '全过程准确率': 92.8, '误拦截率': 4.3, '漏拦截率': 21.2, '模型与 Judge 操作集合一致率': 97.1, '模型-Judge 端到端代理准确率': 97.3, 'RRF 前K命中率': 97.5, 'Reranker Top1 准确率': 94.4, 'Reranker 直出意图准确率': 94.5, '意图识别准确率': 97.7, '拒识命中率': 90.1, '全过程人工标注准确率': 95.8, '评估模型准确率': 94.2, '全过程平均耗时': 696 },
-      { date: '09-04', '全过程准确率': 93.4, '误拦截率': 4.5, '漏拦截率': 21.5, '模型与 Judge 操作集合一致率': 97.0, '模型-Judge 端到端代理准确率': 97.1, 'RRF 前K命中率': 97.3, 'Reranker Top1 准确率': 94.2, 'Reranker 直出意图准确率': 94.7, '意图识别准确率': 97.5, '拒识命中率': 89.9, '全过程人工标注准确率': 96.5, '评估模型准确率': 94.8, '全过程平均耗时': 712 },
-      { date: '09-05', '全过程准确率': 93.7, '误拦截率': 4.8, '漏拦截率': 21.8, '模型与 Judge 操作集合一致率': 97.2, '模型-Judge 端到端代理准确率': 97.4, 'RRF 前K命中率': 97.6, 'Reranker Top1 准确率': 94.5, 'Reranker 直出意图准确率': 94.8, '意图识别准确率': 97.8, '拒识命中率': 90.2, '全过程人工标注准确率': 96.1, '评估模型准确率': 94.1, '全过程平均耗时': 725 },
-      { date: '09-06', '全过程准确率': 93.9, '误拦截率': 4.9, '漏拦截率': 21.6, '模型与 Judge 操作集合一致率': 97.3, '模型-Judge 端到端代理准确率': 97.5, 'RRF 前K命中率': 97.7, 'Reranker Top1 准确率': 94.6, 'Reranker 直出意图准确率': 94.9, '意图识别准确率': 97.9, '拒识命中率': 90.3, '全过程人工标注准确率': 95.9, '评估模型准确率': 94.6, '全过程平均耗时': 731 },
-      { date: '09-07', '全过程准确率': 93.5, '误拦截率': 4.7, '漏拦截率': 21.4, '模型与 Judge 操作集合一致率': 97.1, '模型-Judge 端到端代理准确率': 97.3, 'RRF 前K命中率': 97.5, 'Reranker Top1 准确率': 94.4, 'Reranker 直出意图准确率': 94.7, '意图识别准确率': 97.7, '拒识命中率': 90.1, '全过程人工标注准确率': 96.3, '评估模型准确率': 95.0, '全过程平均耗时': 710 },
-      { date: '09-08', '全过程准确率': 92.95, '误拦截率': 5.8, '漏拦截率': 22.0, '模型与 Judge 操作集合一致率': 97.0, '模型-Judge 端到端代理准确率': 97.2, 'RRF 前K命中率': 97.4, 'Reranker Top1 准确率': 94.3, 'Reranker 直出意图准确率': 94.6, '意图识别准确率': 97.6, '拒识命中率': 90.0, '全过程人工标注准确率': 96.25, '评估模型准确率': 94.5, '全过程平均耗时': 725 }
+      { date: '09-02', '全过程准确率': 93.1, '误拦截率': 4.1, '漏拦截率': 21.0, '模型与 Judge 操作集合一致率': 97.0, '模型-Judge 端到端代理准确率': 97.2, 'RRF 前K命中率': 97.4, 'Reranker Top1 准确率': 94.3, 'Reranker 直出意图准确率': 94.6, '意图识别准确率': 97.6, '拒识命中率': 90.0, '全过程平均耗时': 702, '全过程样本总量': 35000 },
+      { date: '09-03', '全过程准确率': 92.8, '误拦截率': 4.3, '漏拦截率': 21.2, '模型与 Judge 操作集合一致率': 97.1, '模型-Judge 端到端代理准确率': 97.3, 'RRF 前K命中率': 97.5, 'Reranker Top1 准确率': 94.4, 'Reranker 直出意图准确率': 94.5, '意图识别准确率': 97.7, '拒识命中率': 90.1, '全过程平均耗时': 696, '全过程样本总量': 34800 },
+      { date: '09-04', '全过程准确率': 93.4, '误拦截率': 4.5, '漏拦截率': 21.5, '模型与 Judge 操作集合一致率': 97.0, '模型-Judge 端到端代理准确率': 97.1, 'RRF 前K命中率': 97.3, 'Reranker Top1 准确率': 94.2, 'Reranker 直出意图准确率': 94.7, '意图识别准确率': 97.5, '拒识命中率': 89.9, '全过程平均耗时': 712, '全过程样本总量': 35200 },
+      { date: '09-05', '全过程准确率': 93.7, '误拦截率': 4.8, '漏拦截率': 21.8, '模型与 Judge 操作集合一致率': 97.2, '模型-Judge 端到端代理准确率': 97.4, 'RRF 前K命中率': 97.6, 'Reranker Top1 准确率': 94.5, 'Reranker 直出意图准确率': 94.8, '意图识别准确率': 97.8, '拒识命中率': 90.2, '全过程平均耗时': 725, '全过程样本总量': 35600 },
+      { date: '09-06', '全过程准确率': 93.9, '误拦截率': 4.9, '漏拦截率': 21.6, '模型与 Judge 操作集合一致率': 97.3, '模型-Judge 端到端代理准确率': 97.5, 'RRF 前K命中率': 97.7, 'Reranker Top1 准确率': 94.6, 'Reranker 直出意图准确率': 94.9, '意图识别准确率': 97.9, '拒识命中率': 90.3, '全过程平均耗时': 731, '全过程样本总量': 35400 },
+      { date: '09-07', '全过程准确率': 93.5, '误拦截率': 4.7, '漏拦截率': 21.4, '模型与 Judge 操作集合一致率': 97.1, '模型-Judge 端到端代理准确率': 97.3, 'RRF 前K命中率': 97.5, 'Reranker Top1 准确率': 94.4, 'Reranker 直出意图准确率': 94.7, '意图识别准确率': 97.7, '拒识命中率': 90.1, '全过程平均耗时': 710, '全过程样本总量': 34900 },
+      { date: '09-08', '全过程准确率': 92.95, '误拦截率': 5.8, '漏拦截率': 22.0, '模型与 Judge 操作集合一致率': 97.0, '模型-Judge 端到端代理准确率': 97.2, 'RRF 前K命中率': 97.4, 'Reranker Top1 准确率': 94.3, 'Reranker 直出意图准确率': 94.6, '意图识别准确率': 97.6, '拒识命中率': 90.0, '全过程平均耗时': 725, '全过程样本总量': 35150 }
+
+
     ];
 
     let endDateObj = new Date(endDate);
@@ -183,9 +187,8 @@ export default function Overview({
           'Reranker 直出意图准确率': Number((94.6 * (1.0 + noise)).toFixed(2)),
           '意图识别准确率': Number((97.6 * (1.0 + noise)).toFixed(2)),
           '拒识命中率': Number((90.0 * (1.0 + noise)).toFixed(2)),
-          '全过程人工标注准确率': Number((96.2 * (1.0 + noise)).toFixed(2)),
-          '评估模型准确率': Number((94.5 * (1.0 + noise)).toFixed(2)),
-          '全过程平均耗时': Math.round(710 * (1.0 + noise))
+          '全过程平均耗时': Math.round(710 * (1.0 + noise)),
+          '全过程样本总量': Math.round(35000 * (1.0 + noise))
         });
       }
     }
@@ -193,13 +196,8 @@ export default function Overview({
   }, [timeRange, startDate, endDate, durationDays]);
 
   const displayMetrics = useMemo(() => {
-    return metrics.map(m => {
-      if ((m.id === 'manual' || m.id === 'judge') && timeRange === '自定义') {
-        return { ...m, provided: false };
-      }
-      return m;
-    });
-  }, [timeRange]);
+    return metrics;
+  }, []);
 
   const rangeMultiplier = useMemo(() => {
     return durationDays / 7;
@@ -290,7 +288,7 @@ export default function Overview({
   }, [data, displayMetrics]);
 
   const filteredFails = useMemo(() => {
-    return fails.filter(m => !['e2e', 'manual', 'judge', 'latency'].includes(m.id));
+    return fails.filter(m => !['e2e', 'latency'].includes(m.id));
   }, [fails]);
 
   const colors = [
@@ -422,7 +420,8 @@ export default function Overview({
   };
 
   const handleMetricClick = (m: Metric) => {
-    const val = m.id === 'latency' ? data.latency : (data[m.n as keyof BatchData] as number / (data[m.d as keyof BatchData] as number)) * 100;
+    const isTotalSamples = m.id === 'total_samples';
+    const val = m.id === 'latency' ? data.latency : (isTotalSamples ? data.total : (data[m.n as keyof BatchData] as number / (data[m.d as keyof BatchData] as number)) * 100);
     const isFail = fails.includes(m);
     
     const num1 = m.n ? (data[m.n as keyof BatchData] as number) : undefined;
@@ -431,7 +430,7 @@ export default function Overview({
     const dateStr = filteredDailyTrends[filteredDailyTrends.length - 1]?.date ? `2026-${filteredDailyTrends[filteredDailyTrends.length - 1].date}` : '2026-09-08';
     const eyebrowStr = `${dateStr} · ${channel === 'all' ? '全部渠道' : channelNames[channel]}`;
 
-    const isKPI = m.id === 'e2e' || m.id === 'manual' || m.id === 'judge' || m.id === 'latency' || m.name === '全过程准确率' || m.name === '全过程人工标注准确率' || m.name === '评估模型准确率' || m.name === '全过程平均耗时';
+    const isKPI = m.id === 'e2e' || m.id === 'latency' || m.id === 'total_samples' || m.name === '全过程准确率' || m.name === '全过程平均耗时' || m.name === '全过程样本总量';
 
     setDrawerContent({
       title: m.name,
@@ -443,12 +442,14 @@ export default function Overview({
             <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[11px] font-medium rounded">
               {isKPI ? '全链路核心指标' : '模块核心指标'}
             </span>
-            {m.target === undefined ? (
-              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[11px] font-medium rounded">目标待确认</span>
-            ) : (
-              <span className={`px-2 py-0.5 ${isFail ? 'bg-red-50 text-red-500 font-semibold' : 'bg-green-50 text-green-600'} text-[11px] font-medium rounded`}>
-                {isFail ? '未达标' : '达标'}
-              </span>
+            {!isTotalSamples && (
+              m.target === undefined ? (
+                <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[11px] font-medium rounded">目标待确认</span>
+              ) : (
+                <span className={`px-2 py-0.5 ${isFail ? 'bg-red-50 text-red-500 font-semibold' : 'bg-green-50 text-green-600'} text-[11px] font-medium rounded`}>
+                  {isFail ? '未达标' : '达标'}
+                </span>
+              )
             )}
           </div>
 
@@ -458,30 +459,34 @@ export default function Overview({
               "未提供"
             ) : m.id === 'latency' ? (
               `${val.toFixed(0)} ${m.unit || 'ms'}`
+            ) : isTotalSamples ? (
+              `${val.toLocaleString()} ${m.unit || '次'}`
             ) : (
               `${val.toFixed(2)}${m.unit || '%'}`
             )}
           </div>
 
           {/* Info grid */}
-          <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-8 pb-6 border-b border-gray-100">
-            <div>
-              <div className="text-[12px] text-gray-400 mb-1">分子 / 分母或统计样本</div>
-              <div className="text-[14px] text-gray-800 font-normal">
-                {m.id === 'latency' ? (
-                  `${data.total?.toLocaleString()} 次请求`
-                ) : (
-                  `${num1?.toLocaleString() || '0'} / ${num2?.toLocaleString() || '0'}`
-                )}
+          {!isTotalSamples && (
+            <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-8 pb-6 border-b border-gray-100">
+              <div>
+                <div className="text-[12px] text-gray-400 mb-1">分子 / 分母或统计样本</div>
+                <div className="text-[14px] text-gray-800 font-normal">
+                  {m.id === 'latency' ? (
+                    `${data.total?.toLocaleString()} 次请求`
+                  ) : (
+                    `${num1?.toLocaleString() || '0'} / ${num2?.toLocaleString() || '0'}`
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="text-[12px] text-gray-400 mb-1">目标</div>
+                <div className="text-[14px] text-gray-800 font-normal">
+                  {m.target === undefined ? '待确认' : `${m.dir === 'gt' ? '≥' : '≤'} ${m.target}${m.unit || '%'}`}
+                </div>
               </div>
             </div>
-            <div>
-              <div className="text-[12px] text-gray-400 mb-1">目标</div>
-              <div className="text-[14px] text-gray-800 font-normal">
-                {m.target === undefined ? '待确认' : `${m.dir === 'gt' ? '≥' : '≤'} ${m.target}${m.unit || '%'}`}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* 统计口径 Section */}
           <div className="mb-8 pb-6 border-b border-gray-100">
@@ -605,7 +610,8 @@ export default function Overview({
       { name: '意图识别准确率', code: '编码待提供', target: '目标待确认', id: 'llm' },
       { name: '拒识命中率', code: '编码待提供', target: '目标待确认', id: 'reject' },
     ] : [
-      { name: '全过程平均耗时', code: 'E2E-RT-AVG', target: '≤ 1000ms', checkPass: (val: number) => val <= 1000, id: 'latency' }
+      { name: '全过程平均耗时', code: 'E2E-RT-AVG', target: '≤ 1000ms', checkPass: (val: number) => val <= 1000, id: 'latency' },
+      { name: '全过程样本总量', code: 'E2E-TOTAL', target: '目标待确认', checkPass: () => true, id: 'total_samples' }
     ];
 
     setDrawerContent({
@@ -636,7 +642,7 @@ export default function Overview({
                   const unit = row.id === 'latency' ? 'ms' : '%';
                   const valStr = hasVal ? `${rawVal}${unit}` : '--';
 
-                  const isKPI = row.id === 'latency' || row.id === 'e2e' || row.id === 'manual' || row.id === 'judge';
+                  const isKPI = row.id === 'latency' || row.id === 'e2e';
 
                   return (
                     <tr key={idx} className="border-b border-[#f2f4f8] last:border-b-0 hover:bg-[#f6f9fe]/70 transition-all">
@@ -777,8 +783,8 @@ export default function Overview({
             </div>
           </div>
         </div>
-        <div className="summary-band mt-6">
-          {displayMetrics.slice(0, 4).map((m, idx) => {
+        <div className="summary-band mt-6 grid-cols-3">
+          {displayMetrics.slice(0, 3).map((m, idx) => {
             const num1 = m.n ? (data[m.n as keyof BatchData] as number) : undefined;
             const num2 = m.d ? (data[m.d as keyof BatchData] as number) : undefined;
 
@@ -795,19 +801,21 @@ export default function Overview({
 
             const prevVal = m.id === 'latency' ? (
               prevData.latency
+            ) : m.unit === '次' ? (
+              prevNum1
             ) : (prevNum1 !== undefined && prevNum2 !== undefined) ? (
               (prevNum1 / prevNum2) * 100
             ) : undefined;
 
-            const currentValNum = m.id === 'latency' ? data.latency : (num1 !== undefined && num2 !== undefined ? (num1 / num2) * 100 : 0);
+            const currentValNum = m.id === 'latency' ? data.latency : (m.unit === '次' ? num1 || 0 : (num1 !== undefined && num2 !== undefined ? (num1 / num2) * 100 : 0));
             const isFail = fails.includes(m);
             
             let diffText = '';
             let isIncrease = true;
             if (prevVal !== undefined) {
-              const diff = currentValNum - prevVal;
+              const diff = currentValNum - (prevVal || 0);
               isIncrease = diff >= 0;
-              diffText = `${isIncrease ? '+' : ''}${diff.toFixed(2)}${m.id === 'latency' ? 'ms' : '%'}`;
+              diffText = `${isIncrease ? '+' : ''}${diff.toFixed(m.unit === '次' ? 0 : 2)}${m.id === 'latency' ? 'ms' : (m.unit === '次' ? '次' : '%')}`;
             }
             
             return (
@@ -828,13 +836,13 @@ export default function Overview({
                   </div>
                 )}
 
-                <div className="text-[12px] text-[#8c8c8c] mb-4">
-                  {m.provided !== false && num1 !== undefined && num2 !== undefined ? (
+                <div className="text-[12px] text-[#8c8c8c] mb-4 h-[18px]">
+                  {m.provided !== false && num1 !== undefined && m.unit !== '次' && num2 !== undefined ? (
                     `期间汇总 · ${num1.toLocaleString()} / ${num2.toLocaleString()}`
-                  ) : m.provided !== false ? (
+                  ) : m.provided !== false && m.unit !== '次' ? (
                     `期间汇总 · 数据计算中`
                   ) : (
-                    <div className="h-[18px]" /> // Placeholder for empty
+                    null
                   )}
                 </div>
 

@@ -558,7 +558,7 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
             </div>
           </div>
 
-          {/* Buttons: 查询 / 重置 */}
+          {/* Buttons: 查询 / 重置 / 导入 */}
           <div className="ml-auto flex items-center gap-2">
             <button
               className="h-[32px] px-5 bg-[#2563eb] hover:bg-blue-700 text-white text-[13px] font-medium rounded transition-all cursor-pointer shadow-2xs"
@@ -572,20 +572,16 @@ export default function Batches({ channel: initialChannel }: BatchesProps) {
             >
               重置
             </button>
+            {tab === 'manual' && (
+              <button
+                className="h-[32px] px-4 bg-[#2563eb] hover:bg-blue-700 text-white text-[13px] font-medium rounded transition-all cursor-pointer shadow-2xs ml-2"
+                onClick={() => alert('导入功能待接入')}
+              >
+                导入评估文件
+              </button>
+            )}
           </div>
         </div>
-      </div>
-
-      {/* Table Container - Matching Badcase.tsx style */}
-      <div className="mt-6 flex justify-end">
-        {tab === 'manual' && (
-          <button
-            className="px-4 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white text-[13px] font-medium rounded transition-all cursor-pointer shadow-sm"
-            onClick={() => alert('导入功能待接入')}
-          >
-            导入评估文件
-          </button>
-        )}
       </div>
       <div className="bg-white rounded-lg border border-gray-200 shadow-2xs overflow-hidden mt-2">
         <table className="w-full text-left border-collapse">
